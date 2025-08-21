@@ -1,0 +1,56 @@
+from functools import partial  # 锁定参数
+import subprocess
+
+subprocess.Popen = partial(subprocess.Popen, encoding="utf-8")
+
+import requests
+import execjs
+import time
+
+h = 34839810
+data = {
+	  "data": "{\"pageNumber\":2,\"keyword\":\"JetBrains\",\"fromFilter\":false,\"rowsPerPage\":30,\"sortValue\":\"\",\"sortField\":\"\",\"customDistance\":\"\",\"gps\":\"\",\"propValueStr\":\"{}\",\"customGps\":\"\",\"searchReqFromPage\":\"pcSearch\",\"extraFilterValue\":\"{}\",\"userPositionJson\":\"{}\"}"
+}
+print(data["data"])
+timestamp = int(time.time()) * 1000
+need_encrypt_str = "2ef3eab7e3bd8b5f267bfa3056558ae6" + "&" + str(timestamp) + "&" + str(h) + "&" + data["data"]
+# need_encrypt_str = 'a9b974fd6a1d777ca53ee9ac59fab8ed&1732339751920&34839810&{"itemId":"","pageSize":30,' \
+#                    '"pageNumber":1,"machId":"165362_1"}'
+# print(need_encrypt_str)
+file = open("/content/sample_data/test.js", mode='r')
+exec_js = file.read()
+exec_code = execjs.compile(exec_js)
+res = exec_code.call("i", need_encrypt_str)
+print(res)
+
+url = "https://h5api.m.goofish.com/h5/mtop.taobao.idlemtopsearch.pc.search/1.0/"
+params = {"jsv": "2.7.2", "appKey": "34839810", "t": str(timestamp),"sign": res, "v": "1.0", "type": "originaljson",
+		  "accountSite": "xianyu", "dataType": "json", "timeout": "20000",
+		  "api": "mtop.taobao.idlemtopsearch.pc.search", "sessionOption": "AutoLoginOnly", "spm_cnt": "a21ybx.search.0.0","spm_pre":"a21ybx.home.searchInput.0"}
+print(timestamp)
+
+
+# url=f'https://h5api.m.goofish.com/h5/mtop.taobao.idlemtopsearch.pc.search/1.0/?jsv=2.7.2&appKey=34839810&t={timestamp}&sign={res}&v=1.0&type=originaljson&accountSite=xianyu&dataType=json&timeout=20000&api=mtop.taobao.idlemtopsearch.pc.search&sessionOption=AutoLoginOnly&spm_cnt=a21ybx.search.0.0&spm_pre=a21ybx.home.searchInput.0'
+# print(url)
+headers = {
+	  "Accept": "application/json",
+	  "Accept-Encoding": "gzip, deflate, br",
+	  "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+	  "Content-Length": "109",
+	  "Content-Type": "application/x-www-form-urlencoded",
+	  "Origin": "https://www.goofish.com",
+	  "Referer": "https://www.goofish.com/",
+	  'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Microsoft Edge";v="122"',
+	  "Sec-Ch-Ua-Mobile": "?0",
+	  'Sec-Ch-Ua-Platform': '"Windows"',
+	  "Sec-Fetch-Dest": "empty",
+	  "Sec-Fetch-Mode": "cors",
+	  "Sec-Fetch-Site": "same-site",
+	  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
+}
+cookies = {
+	  "Cookie": "_samesite_flag_=true; cookie2=1f9afd7b0e50132179152028b27e986b; t=0b1a04883bacb7273019e40f66cf46c0; _tb_token_=f5317e535e7e6; cna=8nUtIQPflVgCAawROFY0MV3z; xlly_s=1; mtop_partitioned_detect=1; _m_h5_tk=2ef3eab7e3bd8b5f267bfa3056558ae6_1755770496719; _m_h5_tk_enc=7ce79b20d698e8251d80d668dfbabe28; tfstk=gHkKLw_xAFYHa17Fv4AGqEumYY-gwCmEt2ofEz4hNV3tcm73Nv2ny_3n44VW8JD-W0gvYuYEEMlZom6nKByleJyzFEYDnKmnY8yWtWuGc9Jsbo_CACVCoQeH1EYDndACf8Lpo4xx0hN_4PZQV71BXOZ448ZQRytT5uEVNwg7FhKTqu77Vy67CdZz08aSP8ttfPr8Fkg7Fhn_7uGrdUU1AzX-9Kcsr4TFW8w-BkFLlcdNFTL3YZ4SAkW5FyEL9fnQWT6SBbKwzpzBgG4zKyoQv4JVLJN-Nv2sdF97hjuteSwvZHPI2f3zKAt5OrGn-7DU6w1QDJULGvNXETnQNfHTKvTPgcmTRSeisC83ZJ3KgrPB_Fu-Xy0Sp5_pSzcmjvNtlFXtz7hSKRMB5KIrbxDY5X70kufBXhCPaWZwOlrGgRLgHMqToHpRa_PwblUDXj1PaWaYXrxMV_5zs3f.."
+}
+# params = 'pageNumber=1&keyword=JetBrains&fromFilter=false&rowsPerPage=30&sortValue=&sortField=&customDistance=&gps=&propValueStr=&customGps=&searchReqFromPage=pcSearch&extraFilterValue=&userPositionJson='
+resp = requests.post(url, data=data, headers=headers,params=params, cookies=cookies)
+print(resp.text)
