@@ -1,0 +1,195 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Aug 25 10:45:30 2025
+
+@author: JASONJIE
+"""
+
+import http.client,requests,urllib.parse,time
+
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
+# 設定無頭瀏覽器選項
+chrome_options = Options()
+chrome_options.add_argument("--headless")  # 啟用無頭模式
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("blink-settings=imagesEnabled=false")
+chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+chrome_options.add_argument('--disable-blink-features=AutomationControlled')  # 避免被偵測為自動化工具
+
+# 初始化瀏覽器
+driver = webdriver.Chrome(options=chrome_options)
+id_number = "O101212231"  # 身分證字號
+birthday_year = "112"     # 生日年
+birthday_month = "06"      # 生日月
+birthday_day = "30"        # 生日日
+verify_code = "123456"     # 驗證碼
+# 偽裝瀏覽器指紋（防止被偵測為自動化）
+driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+def book():
+    url = "https://reg.ntuh.gov.tw/WebReg/WebReg/RegByDrName"
+    s = "黃立民"
+    # s="周宗欣"
+    encoded = urllib.parse.quote(s)
+    url_number='https://reg.ntuh.gov.tw/WebReg/WebReg/ValidNumerImage?inputText=XDlEQjNCVjNOSDlI'
+    
+    payload = f'ckbVHosp=T0&ckbVHosp=false&ckbVHosp=CH&ckbVHosp=false&ckbVHosp=false&ckbVHosp=false&ckbVHosp=false&ckbVHosp=false&ckbVHosp=false&selectAll=false&vHospCode=T0&inputString={encoded}&submitButton=%E6%9F%A5%E8%A9%A2%E9%86%AB%E4%BA%8B%E4%BA%BA%E5%93%A1'
+    headers = {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "zh-TW,zh;q=0.9",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-length": "269",
+        "content-type": "application/x-www-form-urlencoded",
+        "cookie": "_ga=GA1.1.728938374.1747291197; _ga_BRDPSTK5BL=GS2.1.s1747291197$o1$g1$t1747291229$j0$l0$h0; Localization.CurrentUICulture=zh-TW; __RequestVerificationToken_L1dlYlJlZw2=dYt2PJTrWxhSY65ymUl7_JCLl7uZlMATLRGRBoXgqKPVbntPN0vV4mL6JMSrBQl-I9W_svd7Y8Pig-cNwYpnx7x_ClFPL5a08NUpCM-45SA1; ASP.NET_SessionId=phqghl0ovr2tqwwqpim21cbm",
+        "host": "reg.ntuh.gov.tw",
+        "origin": "https://reg.ntuh.gov.tw",
+        "pragma": "no-cache",
+        "referer": "https://reg.ntuh.gov.tw/WebReg/WebReg/RegByDrName",
+        "sec-ch-ua": "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+    }
+
+    while True:
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # with open(rf'e:\data_down\log.txt', 'w') as files:  
+            #     files.write(response.text)
+            if s in response.text:
+                # 嘗試找「前往掛號」連結
+                link_tag = soup.find('a', string=lambda text: text and '前往掛號' in text)
+                if not link_tag:
+                    for a in soup.find_all('a'):
+                        if '前往掛號' in a.get_text():
+                            link_tag = a
+                            break
+    
+                if link_tag:
+
+
+                    # url = "https://reg.ntuh.gov.tw/WebReg/WebReg/ValidNumerImage?inputText=XDlEQjNCVjNOSDlI"
+                    # response = requests.get(url,headers)
+
+                    # # 将图像数据转换为 PIL 图像对象
+                    # image = Image.open(io.BytesIO(response.content))
+
+                    # # 图像预处理（例如转换为灰度图、二值化）
+                    # image = image.convert('L')  # 转换为灰度图
+                    # threshold = 128
+                    # image = image.point(lambda p: p > threshold and 255)  # 二值化
+
+                    # # 使用 Tesseract OCR 进行识别
+                    # # 注意：需要安装 Tesseract 并配置环境变量
+                    # text = pytesseract.image_to_string(image)
+
+                    # print("識別結果:", text.strip())
+                    # verify_code=text.strip()
+                    print("✅ 找到連結：", 'https://reg.ntuh.gov.tw/WebReg/WebReg/'+link_tag['href'])
+                    get_url='https://reg.ntuh.gov.tw/WebReg/WebReg/'+link_tag['href']
+                    # 打開目標網頁（必須替換為你自己的網址）
+                    driver.get(get_url)
+                    # print(driver.page_source)
+                    img_element = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, "//img[starts-with(@src, 'ValidNumerImage')]"))
+                    )
+                    
+                    # 取得 src 屬性
+                    src_value = img_element.get_attribute("src")
+                    # print("✅ img src 值為：", src_value)
+                    response = requests.get(src_value,headers)
+
+                    # 将图像数据转换为 PIL 图像对象
+                    image = Image.open(io.BytesIO(response.content))
+
+                    # 图像预处理（例如转换为灰度图、二值化）
+                    image = image.convert('L')  # 转换为灰度图
+                    threshold = 128
+                    image = image.point(lambda p: p > threshold and 255)  # 二值化
+
+                    # 使用 Tesseract OCR 进行识别
+                    # 注意：需要安装 Tesseract 并配置环境变量
+                    text = pytesseract.image_to_string(image)
+
+                    print("識別結果:", text.strip())
+                    verify_code=text.strip()                    
+                    # print("id")
+                    driver.find_element(By.ID, "txtInputID").send_keys(id_number)
+                    # print("id1")
+                    driver.find_element(By.ID, "year").send_keys(birthday_year)
+                    driver.find_element(By.ID, "month").send_keys(birthday_month)
+                    driver.find_element(By.ID, "day").send_keys(birthday_day)
+                    driver.find_element(By.ID, "validText").send_keys(verify_code)
+                    # print("id12")
+                    # 嘗試提交表單（假設提交按鈕的 type 為 submit 或有 onclick 事件）
+                    # 你可以根據實際情況調整提交方式
+                    # WebDriverWait(driver, 10).until(EC.title_contains("patientIdentityConfirm"))
+                    # time.sleep(30)
+                    # submit_button = driver.find_element(By.ID, "patientIdentityConfirm")
+                    # submit_button.click()
+                    # print("✅ 表單已送出")
+                    try:
+                        # 方法一：使用 XPath 正確語法
+                        # submit_button = driver.find_element(By.XPATH, "//button[@type='submit'] | //input[@type='submit']")
+
+                        # 方法二：使用 id 精準定位
+                        # submit_button = driver.find_element(By.ID, "patientIdentityConfirm")
+                        # submit_button.click()
+
+
+                        submit_button = driver.find_element(By.ID, "patientIdentityConfirm")
+                        driver.execute_script("arguments[0].click();", submit_button)
+
+
+                        print("✅ 表單已送出")
+                    except Exception as e:
+                        print("❌ 找不到送出按鈕，錯誤：", e)
+                    # print("✅ 表單已送出")
+                    # 可選：印出目前頁面原始碼確認送出結果
+                    # print(driver.page_source)
+                    break
+                    driver.quit()
+                    break
+                else:
+                    print("🔄 未找到連結，60 秒後重試...")
+                    time.sleep(60)
+    
+        except Exception as e:
+            print(f"⚠️ 發生錯誤：{e}")
+            time.sleep(3)
+# book()
+
+# 設定執行的目標時間
+target_time = "2025-08-25 10:00:00"
+target_datetime = datetime.strptime(target_time, "%Y-%m-%d %H:%M:%S")
+
+# 目前時間
+current_time = datetime.now()
+
+# 計算需等待的秒數
+wait_seconds = (target_datetime - current_time).total_seconds()
+
+if wait_seconds > 0:
+    print(f"需要等待 {wait_seconds} 秒")
+    time.sleep(wait_seconds)  # 等待至指定時間
+    for i in range(5):
+      book()  # 執行目標函式
+else:
+    print("目標時間已過，無法執行 book()")
+
