@@ -1,13 +1,12 @@
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
-
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, FollowEvent
 import os
 
 app = Flask(__name__)
 
-# 從環境變數讀取，或直接寫死（不建議）
+# 建議改用環境變數
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '你的Channel Secret')
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', '你的Access Token')
 
@@ -16,25 +15,32 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 @app.route("/callback", methods=['POST'])
 def callback():
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
-    
+    print("Request body:", body)  # 日誌，方便除錯
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        print("Invalid signature!")
         abort(400)
-    
     return 'OK'
 
+# 收到文字訊息回覆
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_msg = event.message.text
-    reply_msg = f"你說的是: {user_msg}"
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text=reply_msg)
+        TextSendMessage(text=f"你說的是: {event.message.text}")
     )
 
+# 收到加好友事件回覆
+@handler.add(FollowEvent)
+def handle_follow(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text="謝謝你加我好友！")
+    )
+
+# 主程式只在本地測試時使用
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
