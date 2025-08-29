@@ -84,4 +84,19 @@ print(driver.page_source)
 
 
 
+!apt-get update
+!apt-get install -y xfce4 xfce4-goodies tightvncserver wget unzip
 
+# 安裝 Google Chrome
+!wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+!apt-get install -y ./google-chrome-stable_current_amd64.deb
+
+# 安裝 chromedriver（自動配對版本）
+chrome_version = !google-chrome --version
+chrome_version = chrome_version[0].split()[2].split('.')[0]
+!LATEST=$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$chrome_version) && \
+    wget -q https://chromedriver.storage.googleapis.com/$LATEST/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip && mv chromedriver /usr/bin/chromedriver
+
+# 安裝 selenium
+!pip install selenium
