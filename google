@@ -15,7 +15,18 @@
 !pip install selenium
 
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
+chrome_options = Options()
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--window-size=1920,1080")
+chrome_options.add_argument("--headless")  # 👈 可先關掉測試，避免驗證看不到
+
+service = Service("/usr/bin/chromedriver")
+driver = webdriver.Chrome(service=service, options=chrome_options)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
