@@ -1,0 +1,25 @@
+USER_DATA_DIR = os.path.expanduser("~/Library/Application Support/Google/Chrome")
+PROFILE_DIR = "Default"  # 你想使用的 profile 資料夾
+
+# -----------------------------
+opts = Options()
+opts.add_argument(f"--user-data-dir={USER_DATA_DIR}")
+opts.add_argument(f"--profile-directory={PROFILE_DIR}")
+
+# 讓程式啟動後，瀏覽器保持開啟
+opts.add_experimental_option("detach", True)
+
+# 減少自動化提示
+opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+opts.add_argument("--disable-blink-features=AutomationControlled")
+
+# 啟動本機 Chrome
+driver = webdriver.Chrome(options=opts)
+
+# 開啟 Google 首頁（如果已登入，會直接顯示帳號資訊）
+driver.get("https://accounts.google.com/")
+
+time.sleep(2)
+
+# 打開 Gmail 或其他 Google 服務
+driver.get("https://mail.google.com/")
