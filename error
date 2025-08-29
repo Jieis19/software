@@ -1,1 +1,69 @@
 <a id="loginGoogle" class="btn btn-sm btn-outline-primary" href="https://tixcraft.com/login/google"><div class="col-xs-8"><img id="google" class="img-fluid" src="/images/logo/google-logo.png" alt="" onerror="this.src=&quot;/images/no-image1.png&quot;"></div></a>
+
+
+
+
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time,json
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
+# 設定無頭瀏覽器選項
+chrome_options = Options()
+chrome_options.add_argument("--headless")  # 啟用無頭模式
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("blink-settings=imagesEnabled=false")
+chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+chrome_options.add_argument('--disable-blink-features=AutomationControlled')  # 避免被偵測為自動化工具
+
+driver = webdriver.Chrome(options=chrome_options)
+driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+driver.get("https://accounts.google.com/")
+time.sleep(3)
+driver.get("https://tixcraft.com")
+print(driver.page_source)
+
+
+
+
+
+
+
+
+
+
+
+
+     <title>Let's Get Your Identity Verified</title>
+      <div class="container">
+        <div class="box">
+          <div class="c1">Let's Get Your Identity Verified</div>
+          <div class="c2">
+            Your browser hit a snag and we need to make sure you're not a bot.
+            There are a couple of reasons why this may have happened:
+          </div>
+          <ul class="c3">
+            <li>You were browsing too quickly for our site to catch up.</li>
+            <li>You disabled your cookies.</li>
+            <li>
+              A third-party browser plugin, such as Ghostery or NoScript, is
+              preventing Javascript from running.
+            </li>
+          </ul>
+
+
+
+
+
+
