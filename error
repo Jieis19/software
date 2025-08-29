@@ -1,7 +1,25 @@
 <a id="loginGoogle" class="btn btn-sm btn-outline-primary" href="https://tixcraft.com/login/google"><div class="col-xs-8"><img id="google" class="img-fluid" src="/images/logo/google-logo.png" alt="" onerror="this.src=&quot;/images/no-image1.png&quot;"></div></a>
 
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+import time, json
 
+options = Options()
+options.add_argument("--disable-notifications")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+
+driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=options)
+driver.get("https://tixcraft.com")
+time.sleep(5)
+
+cookies = driver.get_cookies()
+with open("cookies.json", "w") as f:
+    json.dump(cookies, f, indent=2, ensure_ascii=False)
+
+print("cookies 已存到 cookies.json")
 
 
 from selenium import webdriver
