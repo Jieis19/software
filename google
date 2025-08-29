@@ -1,0 +1,47 @@
+!apt-get update
+!apt-get install -y wget unzip
+
+# 安裝 Chrome
+!wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+!apt-get install -y ./google-chrome-stable_current_amd64.deb
+
+# 安裝 chromedriver
+!wget -q https://chromedriver.storage.googleapis.com/$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip
+!unzip chromedriver_linux64.zip
+!mv chromedriver /usr/bin/chromedriver
+!chmod +x /usr/bin/chromedriver
+
+# 安裝 selenium
+!pip install selenium
+
+
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time
+
+# 進入 Google 登入頁
+driver.get("https://accounts.google.com/")
+time.sleep(3)
+
+# 輸入帳號
+email_input = driver.find_element(By.ID, "identifierId")
+email_input.send_keys("你的Gmail帳號")   # ⚠️換成你的帳號
+email_input.send_keys(Keys.ENTER)
+time.sleep(3)
+
+# 輸入密碼
+password_input = driver.find_element(By.NAME, "Passwd")
+password_input.send_keys("你的密碼")     # ⚠️換成你的密碼
+password_input.send_keys(Keys.ENTER)
+time.sleep(5)
+
+driver.get("https://tixcraft.com/")
+time.sleep(5)
+
+# 取得 cookies
+tixcraft_cookies = driver.get_cookies()
+
+import json
+print(json.dumps(tixcraft_cookies, indent=2, ensure_ascii=False))
+
