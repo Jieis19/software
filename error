@@ -1,0 +1,6 @@
+alert_text = value["alert"].get("text")
+    231             raise exception_class(message, screen, stacktrace, alert_text)  # type: ignore[call-arg]  # mypy is not smart enough here
+--> 232         raise exception_class(message, screen, stacktrace)
+
+SessionNotCreatedException: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 139.0.7258.154 with binary path /usr/bin/google-chrome; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
