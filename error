@@ -1,6 +1,24 @@
-alert_text = value["alert"].get("text")
-    231             raise exception_class(message, screen, stacktrace, alert_text)  # type: ignore[call-arg]  # mypy is not smart enough here
---> 232         raise exception_class(message, screen, stacktrace)
+!apt-get update
+!apt-get install -y wget unzip curl
 
-SessionNotCreatedException: Message: session not created: This version of ChromeDriver only supports Chrome version 114
-Current browser version is 139.0.7258.154 with binary path /usr/bin/google-chrome; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+# 安裝最新 Chrome
+!wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+!apt-get install -y ./google-chrome-stable_current_amd64.deb
+
+# 取得 Chrome 版本號
+!google-chrome --version
+
+# 找到對應的 ChromeDriver 版本
+chrome_version = !google-chrome --version
+chrome_version = chrome_version[0].split()[2].split('.')[0]
+
+print("目前 Chrome 主版本:", chrome_version)
+
+!LATEST=$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$chrome_version) && \
+    wget -q https://chromedriver.storage.googleapis.com/$LATEST/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip && \
+    mv chromedriver /usr/bin/chromedriver && \
+    chmod +x /usr/bin/chromedriver
+
+# 安裝 selenium
+!pip install selenium
