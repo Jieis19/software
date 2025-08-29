@@ -1,25 +1,106 @@
-USER_DATA_DIR = os.path.expanduser("~/Library/Application Support/Google/Chrome")
-PROFILE_DIR = "Default"  # 你想使用的 profile 資料夾
+import requests
+import time
+import random
+import re
+import json
+import io
+from bs4 import BeautifulSoup
+from PIL import Image
+import ddddocr
 
-# -----------------------------
-opts = Options()
-opts.add_argument(f"--user-data-dir={USER_DATA_DIR}")
-opts.add_argument(f"--profile-directory={PROFILE_DIR}")
+# 共用 headers
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/120.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
+    "Cookie": "這裡放你的cookie"
+}
 
-# 讓程式啟動後，瀏覽器保持開啟
-opts.add_experimental_option("detach", True)
+# ---------- STEP 1: 找 first_url ----------
+while True:
+    resp = requests.get('https://tixcraft.com/ticket/area/25_sjtp/20150', headers=headers)
+    print("狀態碼:", resp.status_code)
+    html = resp.text
+    match = re.search(r'var\s+areaUrlList\s*=\s*(\{.*?\});', html, re.S)
 
-# 減少自動化提示
-opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-opts.add_argument("--disable-blink-features=AutomationControlled")
+    if match:
+        area_dict = json.loads(match.group(1))
+        first_key = next(iter(area_dict))
+        first_url = area_dict[first_key]
+        print("第一個 URL:", first_url)
+        break
+    else:
+        print("找不到 areaUrlList，稍後重試...")
+        sleep_time = random.randint(30, 90)
+        time.sleep(sleep_time)
 
-# 啟動本機 Chrome
-driver = webdriver.Chrome(options=opts)
+# ---------- STEP 2: 抓驗證碼 + OCR ----------
+resp = requests.get(first_url, headers=headers)
+soup = BeautifulSoup(resp.text, "html.parser")
 
-# 開啟 Google 首頁（如果已登入，會直接顯示帳號資訊）
-driver.get("https://accounts.google.com/")
+# csrf token
+csrf_token = soup.find("meta", attrs={"name": "csrf-token"})["content"]
+print("CSRF Token:", csrf_token)
 
-time.sleep(2)
+# 找驗證碼圖片
+img_tag = soup.find("img", {"id": "TicketForm_verifyCode-image"})
+captcha_src = "https://tixcraft.com" + img_tag["src"]
 
-# 打開 Gmail 或其他 Google 服務
-driver.get("https://mail.google.com/")
+resp_captcha = requests.get(captcha_src, headers=headers)
+ocr = ddddocr.DdddOcr(show_ad=False, use_gpu=False)
+captcha_result = ocr.classification(resp_captcha.content)
+print("辨識驗證碼:", captcha_result)
+
+# 找票價資訊
+ticket_data = {}
+for select in soup.find_all("select", attrs={"name": re.compile(r"TicketForm\[ticketPrice\]\[(\d+)\]")}):
+    match = re.search(r"TicketForm\[ticketPrice\]\[(\d+)\]", select["name"])
+    if match:
+        code = match.group(1)
+        options = [opt["value"] for opt in select.find_all("option")]
+        ticket_data[code] = {"ticketPrice_options": options, "priceSize": None}
+
+for hidden in soup.find_all("input", attrs={"name": re.compile(r"TicketForm\[priceSize\]\[(\d+)\]")}):
+    match = re.search(r"TicketForm\[priceSize\]\[(\d+)\]", hidden["name"])
+    if match:
+        code = match.group(1)
+        if code in ticket_data:
+            ticket_data[code]["priceSize"] = hidden["value"]
+
+# 準備 payload (這裡我寫死選 2 張)
+payload = {
+    "_csrf": csrf_token,
+    f"TicketForm[ticketPrice][{code}]": "2",
+    f"TicketForm[priceSize][{code}]": "1",
+    "TicketForm[verifyCode]": captcha_result,
+    "TicketForm[agree]": "1"
+}
+
+# ---------- STEP 3: 送出 POST ----------
+resp_post = requests.post(first_url, headers=headers, data=payload)
+print("POST 選票狀態碼:", resp_post.status_code)
+
+# ---------- STEP 4: 檢查 /ticket/check ----------
+check_url = "https://tixcraft.com/ticket/check"
+while True:
+    resp = requests.get(check_url, headers=headers)
+    print("檢查狀態碼:", resp.status_code)
+
+    if resp.status_code == 200:
+        print("成功，進入 checkout")
+        break
+    else:
+        print("不是 200，等待後重試...")
+        time.sleep(random.randint(3, 6))
+
+# ---------- STEP 5: 嘗試 checkout ----------
+checkout_url = "https://tixcraft.com/ticket/checkout"
+resp_checkout = requests.get(checkout_url, headers=headers)
+
+if resp_checkout.status_code == 200:
+    print("成功進入結帳！")
+else:
+    print("Checkout 失敗，回到 /ticket/check 重試...")
+    # 回到 while check 繼續跑
