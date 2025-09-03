@@ -58,7 +58,7 @@ def search_goods(keyword: str) -> str:
     driver = create_driver()
     driver.get("https://www.goofish.com/")
     logging.info("已打開 Goofish 網站")
-    time.sleep(15)
+    time.sleep(10)
 
     cookies = driver.get_cookies()
     driver.quit()
