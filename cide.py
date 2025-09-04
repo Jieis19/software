@@ -1,12 +1,14 @@
 from flask import Flask, send_file, request
 from linebot import LineBotApi, WebhookHandler
-from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageSendMessage, FollowEvent
 import io
 import matplotlib.pyplot as plt
 import requests
 import math
-import base64
 
+# -----------------------------
+# 初始化 Flask 與 LINE Bot
+# -----------------------------
 app = Flask(__name__)
 
 line_bot_api = LineBotApi("YOUR_CHANNEL_ACCESS_TOKEN")
@@ -27,7 +29,7 @@ def calculate_time(distance_km, speed_kmh=30):
     return (distance_km / speed_kmh) * 60  # 分鐘
 
 # -----------------------------
-# 圖像生成
+# 生成地圖圖片函數
 # -----------------------------
 def generate_plot_image(lat2, lon2):
     lat1, lon1, label1 = 24.819735, 120.954769, "chayi"
@@ -50,7 +52,7 @@ def generate_plot_image(lat2, lon2):
     return buf
 
 # -----------------------------
-# Flask route
+# Flask route /plot
 # -----------------------------
 @app.route("/plot")
 def send_plot():
@@ -60,7 +62,7 @@ def send_plot():
     return send_file(buf, mimetype="image/png")
 
 # -----------------------------
-# 抓垃圾車資料
+# 抓垃圾車資料並推播
 # -----------------------------
 def fetch_garbage_truck_info(user_id=None):
     url_location = "https://7966.hccg.gov.tw/WEB/_IMP/API/CleanWeb/getCarLocation"
@@ -87,13 +89,13 @@ def fetch_garbage_truck_info(user_id=None):
                     output += f"兩點距離：{distance:.3f} 公里\n"
                     output += f"預計行駛時間（30 km/h）：{time_minutes:.2f} 分鐘\n\n"
 
-                    # 推播圖片給 Line
+                    # 用 /plot URL 推播圖片給 LINE
                     if user_id:
-                        buf = generate_plot_image(lat1, lon1)
-                        img_b64 = base64.b64encode(buf.getvalue()).decode()
+                        base_url = "https://你的網站域名/plot"  # <-- 改成你部署的 HTTPS 網址
+                        image_url = f"{base_url}?lat2={lat1}&lon2={lon1}"
                         image_message = ImageSendMessage(
-                            original_content_url=f"data:image/png;base64,{img_b64}",
-                            preview_image_url=f"data:image/png;base64,{img_b64}"
+                            original_content_url=image_url,
+                            preview_image_url=image_url
                         )
                         line_bot_api.push_message(user_id, image_message)
         else:
@@ -105,7 +107,7 @@ def fetch_garbage_truck_info(user_id=None):
         return f"發生錯誤：{str(e)}"
 
 # -----------------------------
-# Line event
+# LINE Event
 # -----------------------------
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -127,3 +129,9 @@ def handle_follow(event):
         event.reply_token,
         TextSendMessage(text="謝謝你加我好友！\n輸入「垃圾車」即可查詢垃圾車位置")
     )
+
+# -----------------------------
+# Flask 主程式
+# -----------------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
