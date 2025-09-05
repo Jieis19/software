@@ -123,3 +123,53 @@ if jiage_values:
         print(f"'jiage' 列的high數: {max_jiage*1.5+90} (pic: {max_item[1]})")
 else:
     print("無法計算中位數：'jiage' 列無資料。")
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+from linebot import LineBotApi
+from linebot.models import TextSendMessage, ImageSendMessage
+
+line_bot_api = LineBotApi("你的 Channel Access Token")
+
+# 假設這裡已經算好中位數與對應商品
+median_jiage = 120.0
+median_item = {
+    "title": "XX商品",
+    "pic": "https://example.com/image.jpg",
+    "link": "https://www.goofish.com/item?id=123456"
+}
+
+# 要回覆的內容
+messages = [
+    TextSendMessage(
+        text=f"📊 中位數價格: {median_jiage}\n商品: {median_item['title']}\n連結: {median_item['link']}"
+    ),
+    ImageSendMessage(
+        original_content_url=median_item["pic"],   # 圖片原始網址 (必須是 HTTPS)
+        preview_image_url=median_item["pic"]       # 縮圖網址 (可同原圖)
+    )
+]
+
+# 推送給某個 user_id
+line_bot_api.push_message("使用者的 userId", messages)
