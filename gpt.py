@@ -53,3 +53,73 @@ if jiage_values:
         print(f"'jiage' 列的high數: {max_jiage*1.5+90}")
 else:
     print("無法計算中位數：'jiage' 列無資料。")
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+import statistics
+
+data_list = []  # 存放 [價格, pic]
+
+for i in lis:
+    title = i["data"]["item"]["main"]["exContent"]["title"].strip()
+    diqu = i["data"]["item"]["main"]["exContent"]["area"].strip()
+    pic = i["data"]["item"]["main"]["exContent"]["picUrl"].strip()
+    try:
+        naem = i["data"]["item"]["main"]["exContent"]["userNickName"].strip()
+    except:
+        naem = "未知(新用户未命名名字)"
+    try:
+        youfei = i["data"]["item"]["main"]["clickParam"]["args"]["tagname"]
+    except:
+        youfei = "不包郵"
+    jianjei = str(youfei) + "+" * 5 + title
+    id = i["data"]["item"]["main"]["exContent"]["itemId"]
+    lianjei = f"https://www.goofish.com/item?spm=a21ybx.search.searchFeedList.1.570344f71nqzll&id={id}&categoryId=126854525"
+    jiage = i["data"]["item"]["main"]["clickParam"]["args"]["price"]
+
+    if float(jiage) > 1:
+        ws.append([jianjei, lianjei, jiage, diqu, pic])
+        data_list.append((float(jiage), pic, title))  # 存價格和 pic
+
+# 取出價格
+jiage_values = [x[0] for x in data_list]
+
+if jiage_values:
+    median_jiage = statistics.median(jiage_values)
+    median_jiage *= 5
+    max_jiage = max(jiage_values) * 5
+
+    # 找到最接近中位數的商品
+    median_item = min(data_list, key=lambda x: abs(x[0]*5 - median_jiage))
+    max_item = max(data_list, key=lambda x: x[0])
+
+    print(f"中位數: {median_jiage}")
+    print(f"對應商品: {median_item[2]} (pic: {median_item[1]})")
+
+    if median_jiage < 1000:
+        print(f"'jiage' 列的中位數: {median_jiage*2+90}")
+        print(f"'jiage' 列的high數: {max_jiage*2+90} (pic: {max_item[1]})")
+    else:
+        print(f"'jiage' 列的中位數: {median_jiage*1.5+90}")
+        print(f"'jiage' 列的high數: {max_jiage*1.5+90} (pic: {max_item[1]})")
+else:
+    print("無法計算中位數：'jiage' 列無資料。")
