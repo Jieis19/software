@@ -134,3 +134,46 @@ def fetch_garbage_truck_info():
 
     except Exception as e:
         return "發生錯誤：" + str(e)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+import schedule
+import time
+import threading
+from datetime import datetime
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+
+line_bot_api = LineBotApi("你的 LINE CHANNEL ACCESS TOKEN")
+
+def fetch_garbage_truck_info():
+    # 這裡放你原本的垃圾車查詢邏輯
+    return "🚛 垃圾車查詢結果"
+
+# ---- 排程 14:00～14:30 ----
+def job():
+    now = datetime.now().time()
+    if now.hour == 14 and now.minute <= 30:
+        result = fetch_garbage_truck_info()
+        line_bot_api.broadcast(TextSendMessage(text="📢 垃圾車提醒\n\n" + result))
+
+def run_schedule():
+    # 每分鐘檢查一次
+    schedule.every(1).minutes.do(job)
+    while True:
+        schedule.run_pending()
+        time.sleep(30)
+
+# 在背景 thread 跑排程，不影響 LINE bot
+t = threading.Thread(target=run_schedule, daemon=True)
+t.start()
