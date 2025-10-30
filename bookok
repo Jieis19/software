@@ -267,3 +267,114 @@
     ]
   }
 ]
+
+<script>
+let HOSPITALS = [];
+
+const el = {
+  selectCity: document.getElementById('selectCity'),
+  selectHospital: document.getElementById('selectHospital'),
+  selectClinic: document.getElementById('selectClinic'),
+  selectDoctor: document.getElementById('selectDoctor'),
+  inputDatetime: document.getElementById('inputDatetime'),
+  inputNote: document.getElementById('inputNote'),
+  btnSubmit: document.getElementById('btnSubmit'),
+  message: document.getElementById('message')
+};
+
+// 🚀 載入 hospitals.json
+async function loadHospitals() {
+  try {
+    const res = await fetch('hospitals.json'); // 本地同目錄放 hospitals.json
+    if (!res.ok) throw new Error('載入失敗');
+    HOSPITALS = await res.json();
+    populateCities();
+  } catch (e) {
+    alert('❌ 無法載入醫院資料，請確認 hospitals.json 是否存在');
+    console.error(e);
+  }
+}
+
+function populateCities() {
+  const cities = [...new Set(HOSPITALS.map(h => h.city))];
+  el.selectCity.innerHTML = '<option value="">— 請選縣市 —</option>';
+  cities.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c;
+    o.textContent = c;
+    el.selectCity.appendChild(o);
+  });
+}
+
+function populateHospitals(city) {
+  el.selectHospital.innerHTML = '<option value="">— 請選醫院 —</option>';
+  HOSPITALS.filter(h => h.city === city).forEach(h => {
+    const o = document.createElement('option');
+    o.value = h.id;
+    o.textContent = h.name;
+    el.selectHospital.appendChild(o);
+  });
+  el.selectClinic.innerHTML = '<option>— 請選科別 —</option>';
+  el.selectDoctor.innerHTML = '<option>— 請選醫生 —</option>';
+}
+
+function populateClinics(hid) {
+  const h = HOSPITALS.find(x => x.id === hid);
+  el.selectClinic.innerHTML = '<option>— 請選科別 —</option>';
+  el.selectDoctor.innerHTML = '<option>— 請選醫生 —</option>';
+  if (!h) return;
+  h.clinics.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = c.name;
+    el.selectClinic.appendChild(o);
+  });
+}
+
+function populateDoctors(hid, cid) {
+  const h = HOSPITALS.find(x => x.id === hid);
+  const c = h?.clinics.find(x => x.id === cid);
+  el.selectDoctor.innerHTML = '<option>— 請選醫生 —</option>';
+  if (!c) return;
+  c.doctors.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d.id;
+    o.textContent = d.name;
+    el.selectDoctor.appendChild(o);
+  });
+}
+
+// 監聽
+el.selectCity.addEventListener('change', () => populateHospitals(el.selectCity.value));
+el.selectHospital.addEventListener('change', () => populateClinics(el.selectHospital.value));
+el.selectClinic.addEventListener('change', () => populateDoctors(el.selectHospital.value, el.selectClinic.value));
+
+el.btnSubmit.addEventListener('click', () => {
+  const city = el.selectCity.value,
+        h = el.selectHospital.value,
+        c = el.selectClinic.value,
+        d = el.selectDoctor.value,
+        t = el.inputDatetime.value;
+
+  if (!city || !h || !c || !d || !t) {
+    alert('請完整選擇各項資料');
+    return;
+  }
+
+  const hospitalName = el.selectHospital.options[el.selectHospital.selectedIndex].text;
+  const clinicName = el.selectClinic.options[el.selectClinic.selectedIndex].text;
+  const doctorName = el.selectDoctor.options[el.selectDoctor.selectedIndex].text;
+
+  alert(`✅ 預約成功！
+縣市：${city}
+醫院：${hospitalName}
+科別：${clinicName}
+醫生：${doctorName}
+時間：${t}`);
+});
+
+// 頁面載入時執行
+loadHospitals();
+</script>
+
+
