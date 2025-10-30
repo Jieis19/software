@@ -378,3 +378,90 @@ loadHospitals();
 </script>
 
 
+
+
+
+
+
+
+import requests, re, json
+from bs4 import BeautifulSoup
+
+proxies = {
+    'https': '172.17.22.161:8080'
+}
+
+headers = {
+    'Cookie': 'JSESSIONID=B30369CD9915669244ED216C5CE8428D',
+    'Content-Type': 'application/x-www-form-urlencoded'
+}
+
+url_main = "https://www.ntuh.gov.tw/ntuh/Fpage.action?muid=82&fid=3276"
+response = requests.get(url_main, headers=headers, proxies=proxies, verify=False)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+div_rows = soup.find_all("div", class_="divTableRow")
+urls = []
+if len(div_rows) >= 2:
+    second_div_row = div_rows[1]
+    urls = [a["href"] for a in second_div_row.find_all("a", href=True) if 'Index.action' in a["href"]]
+
+# 準備存 JSON
+hospital_json = []
+
+# 這裡假設只有一間醫院，可以改成自動抓醫院名稱
+hospital_id = "h001"
+hospital_name = "台大醫院兒童醫學部"
+hospital_city = "台北市"
+
+clinics_list = []
+doctor_counter = 1  # d001 開始計數
+
+for list_ in urls:
+    base_url = f"https://www.ntuh.gov.tw{list_.split('/Index.action')[0]}/VcardAjax.action"
+
+    # 嘗試用 URL 中的最後一段作為科別名稱
+    clinic_name = list_.split('/')[-1].replace('Index.action', '').strip() or "未命名科別"
+    clinic_id = f"c{len(clinics_list)+1:03d}"
+
+    # 先抓一次 POST 看總頁數
+    payload = 'jobType=-1&q_seekValue=&q_order=&pagenum=1'
+    response = requests.post(base_url, headers=headers, data=payload, proxies=proxies, verify=False)
+    data = response.json()
+    total_pages = data.get("totalPages", 1)
+
+    doctors_list = []
+    for page in range(1, total_pages + 1):
+        payload = f'jobType=-1&q_seekValue=&q_order=&pagenum={page}'
+        response = requests.post(base_url, headers=headers, data=payload, proxies=proxies, verify=False)
+        data = response.json()
+
+        for item in data.get("teacherList", []):
+            if "cname" in item and item.get("medicalExpert"):
+                first_part = re.split(r"[;,、]", item["medicalExpert"])[0].strip()
+                doctors_list.append({
+                    "id": f"d{doctor_counter:03d}",
+                    "name": first_part
+                })
+                doctor_counter += 1
+
+    clinics_list.append({
+        "id": clinic_id,
+        "name": clinic_name,
+        "doctors": doctors_list
+    })
+
+hospital_json.append({
+    "id": hospital_id,
+    "name": hospital_name,
+    "city": hospital_city,
+    "clinics": clinics_list
+})
+
+# 輸出 JSON
+with open("ntuh_doctors.json", "w", encoding="utf-8") as f:
+    json.dump(hospital_json, f, ensure_ascii=False, indent=2)
+
+print("✅ 已生成 ntuh_doctors.json")
+
+
