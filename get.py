@@ -1,102 +1,84 @@
-import requests,re,warnings
+import requests
 from bs4 import BeautifulSoup
+import json, warnings
 
-# 禁用所有類型的警告
+# 忽略 SSL/HTTPS 警告
 warnings.filterwarnings('ignore')
 
-# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child# mmh/child
-url = "https://www.hc.mmh.org.tw/child/department.php"
+# 目標 URL
+base_url = "https://www.hc.mmh.org.tw/child/"
+department_url = f"{base_url}department.php"
 
-payload = {}
 headers = {
-  'Cookie': 'PHPSESSID=v38seoisac8bdv17bj1k8iajnb'
+    'Cookie': 'PHPSESSID=v38seoisac8bdv17bj1k8iajnb'
 }
 
-response = requests.request("GET", url, headers=headers, data=payload, timeout=100)
-html_content=response.text
-# 正則表達式來匹配 href 的值
-# 解析 HTML
-soup = BeautifulSoup(html_content, 'html.parser')
+proxies = {
+    'https': '172.17.22.161:8080'  # 可選，如無可刪掉
+}
 
-# 找到特定的 ul
-ul_element = soup.find('ul', class_='department-list clr')  # 根據 class 找到 ul
-
-# 從 ul 中抓取所有的 <a> 標籤並提取 href 屬性
+# Step1: 取得科別頁面的 href
+response = requests.get(department_url, headers=headers, timeout=30)
+soup = BeautifulSoup(response.text, 'html.parser')
+ul_element = soup.find('ul', class_='department-list clr')
 hrefs = [a['href'] for a in ul_element.find_all('a', href=True)]
 
-# 印出所有 href
-# print(hrefs)
+# Step2: 逐科別抓醫生
+doctor_list = []
+partment_list = []
 
-
-
-
-i=0
-doctor=[]
-partment=[]
 for list_ in hrefs[1:]:
     if 'php?id' in list_ and '184' not in list_:
-        # print(list_)
-        url=f'https://www.hc.mmh.org.tw/child/{list_}'
-        # https://www.hc.mmh.org.tw/child/departmain.php?id=14
-        # print(url)
-        payload = {}
-        headers = {
-          'Cookie': 'PHPSESSID=v38seoisac8bdv17bj1k8iajnb'
-        }
-        proxies={
-        'https': '172.17.22.161:8080'
-            }
-        response = requests.request("GET", url, headers=headers, proxies=proxies, verify=False, data=payload, timeout=100)
-        html_content=response.text
-        # 正則表達式來匹配 href 的值
-        # 解析 HTML
-        soup = BeautifulSoup(html_content, 'html.parser')
-        
-        # 抓取 5520（h2 的內容，忽略註解和 span）
-        title_h2 = soup.find('h6')
-        
-        
-        
-        title_h2 = soup.find('h6').get_text(strip=True)  # 去除多餘空格
-        
-        
-        # 抓取所有的 <h3> 裡的文字與 href 屬性
-        h3_links = soup.find_all('h3')  # 找到所有 h3 標籤
-        
-        results = []
+        url = f"{base_url}{list_}"
+        response = requests.get(url, headers=headers, proxies=proxies, verify=False, timeout=30)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 取得科別名稱
+        h2_tag = soup.find('h6')
+        if not h2_tag:
+            continue
+        dept_name = h2_tag.get_text(strip=True)
+
+        # 取得醫生名字
+        h3_links = soup.find_all('h3')
         for h3 in h3_links:
-            link_tag = h3.find('a')  # 找到 h3 裡面的 <a>
-            # print('link_tag',link_tag)
-            if (link_tag):
-                text = link_tag.get_text(strip=True)  # 抓取文字
-                href = link_tag['href']  # 抓取 href 屬性
-                results.append({'text': text, 'href': href})
-        
-        # 輸出結果
-        
-        
-        # { id: 'c-001', name: '內科' },
-        
-        # print("Title from H2:", title_h2)
-        # print("Links and Texts from H3:")
-        if title_h2 not in partment:
-            for result in results:
-                i+=1
-                doctor.append(result['text'])
-                partment.append(title_h2)
-                # print("{"+f"id: 'c-00{i}',name: '{title_h2}-{result['text']}'"+"},")
-                
-               
-                
- 科別:title_h2     ,  醫生:result['text']       
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
+            a_tag = h3.find('a')
+            if a_tag:
+                doc_name = a_tag.get_text(strip=True)
+                doctor_list.append(doc_name)
+                partment_list.append(dept_name)
+
+# Step3: 生成 JSON 結構
+hospital_id = 'h001'
+hospital_name = '新竹馬偕兒童醫院'
+city_name = '新竹市'
+
+# 整理科別與醫生
+clinic_dict = {}
+doctor_counter = 1
+for dept, doc in zip(partment_list, doctor_list):
+    if dept not in clinic_dict:
+        clinic_dict[dept] = []
+    clinic_dict[dept].append({'id': f'd{doctor_counter:03}', 'name': doc})
+    doctor_counter += 1
+
+clinics_list = []
+for cid, (dept, docs) in enumerate(clinic_dict.items(), start=1):
+    clinics_list.append({
+        'id': f'c{cid:03}',
+        'name': dept,
+        'doctors': docs
+    })
+
+hospital_json = {
+    'id': hospital_id,
+    'name': hospital_name,
+    'city': city_name,
+    'clinics': clinics_list
+}
+
+# Step4: 寫入 hospitals.json
+with open('hospitals.json', 'w', encoding='utf-8') as f:
+    json.dump([hospital_json], f, ensure_ascii=False, indent=2)
+
+print("✅ hospitals.json 已生成完成！")
