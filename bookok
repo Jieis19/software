@@ -557,4 +557,25 @@ with open("ntuh_doctors.json", "w", encoding="utf-8") as f:
 print("✅ 已生成 ntuh_doctors.json")
 
 
-
+[
+  {
+    "id": "h001",
+    "name": "新竹馬偕兒童醫院",
+    "city": "新竹市",
+    "clinics": [
+      {
+        "id": "c001",
+        "name": "新生兒科",
+        "doctors": [
+          {
+            "id": "d001",
+            "name": "宋聿翔"
+          },
+          {
+            "id": "d002",
+            "name": "陳政偉"
+          },
+          {
+            "id": "d003",
+            "name": "劉子瑜"
+          },
