@@ -108,3 +108,311 @@ def create_presentation():
 
 if __name__ == "__main__":
     create_presentation()
+    
+    
+    
+    
+    
+    
+    
+    
+line-queue-bot/
+├── app.py                # 後端主程式
+├── requirements.txt      # 套件依賴清單
+└── templates/
+    └── liff.html         # 前端 LIFF 頁面
+
+
+
+Flask==3.0.0
+line-bot-sdk==3.5.0
+gunicorn==21.2.0
+requests==2.31.0
+
+
+app.py
+import os
+import uuid
+from datetime import datetime
+from flask import Flask, request, abort, render_template, jsonify
+from linebot.v3 import WebhookHandler
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.messaging import (
+    Configuration,
+    ApiClient,
+    MessagingApi,
+    ReplyMessageRequest,
+    TextMessage,
+    FlexMessage,
+    FlexContainer
+)
+from linebot.v3.webhooks import MessageEvent, TextMessageContent
+
+app = Flask(__name__)
+
+# --- 設定環境變數 ---
+CHANNEL_ACCESS_TOKEN = os.getenv('CHANNEL_ACCESS_TOKEN')
+CHANNEL_SECRET = os.getenv('CHANNEL_SECRET')
+LIFF_ID = os.getenv('LIFF_ID')  # 格式像是: 1234567890-AbCdEfGh
+
+if not all([CHANNEL_ACCESS_TOKEN, CHANNEL_SECRET, LIFF_ID]):
+    print("警告: 請檢查環境變數是否設定完整。")
+
+configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(CHANNEL_SECRET)
+
+# --- 模擬資料庫 (In-Memory DB) ---
+# 在正式環境請改用 PostgreSQL
+# 結構: { 'group_id': { 'store':Str, 'host_id':Str, 'orders':List, 'status':Str } }
+GROUPS = {}
+
+@app.route("/callback", methods=['POST'])
+def callback():
+    signature = request.headers['X-Line-Signature']
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+    return 'OK'
+
+# --- LIFF 頁面入口 ---
+@app.route("/liff")
+def liff_entry():
+    # 判斷是發起還是跟團
+    group_id = request.args.get('group_id')
+    return render_template('liff.html', liff_id=LIFF_ID, group_id=group_id)
+
+# --- API: 建立排隊 (Host) ---
+@app.route("/api/create_group", methods=['POST'])
+def create_group():
+    data = request.json
+    user_id = data.get('userId')
+    user_name = data.get('userName')
+    store_name = data.get('storeName')
+    
+    group_id = str(uuid.uuid4())[:8] # 產生短 ID
+    
+    GROUPS[group_id] = {
+        'id': group_id,
+        'store': store_name,
+        'host_id': user_id,
+        'host_name': user_name,
+        'created_at': datetime.now().strftime("%H:%M"),
+        'orders': [],
+        'status': 'OPEN'
+    }
+    
+    # 建立 Flex Message 卡片
+    flex_msg = generate_flex_message(GROUPS[group_id])
+    
+    # 透過 API 主動推播給 Host (Host 再分享出去) 
+    # 註：免費版 LINE Bot 無法主動 Push 給未互動者，
+    # 實務上通常建議在 LIFF 用 liff.sendMessages 發送，這邊示範後端回傳邏輯
+    
+    return jsonify({
+        "status": "success", 
+        "group_id": group_id,
+        "flex_message": flex_msg
+    })
+
+# --- API: 加入排隊 (Guest) ---
+@app.route("/api/join_group", methods=['POST'])
+def join_group():
+    data = request.json
+    group_id = data.get('groupId')
+    user_name = data.get('userName')
+    item = data.get('item')
+    
+    if group_id not in GROUPS:
+        return jsonify({"status": "error", "msg": "訂單不存在或已結束"}), 404
+        
+    GROUPS[group_id]['orders'].append({
+        'user': user_name,
+        'item': item
+    })
+    
+    return jsonify({"status": "success", "current_count": len(GROUPS[group_id]['orders'])})
+
+# --- 輔助函式: 產生 Flex Message JSON ---
+def generate_flex_message(group_data):
+    # 這是一個簡單的 Flex Message 結構
+    join_url = f"https://liff.line.me/{LIFF_ID}?group_id={group_data['id']}"
+    
+    bubble = {
+        "type": "bubble",
+        "hero": {
+            "type": "image",
+            "url": "https://images.unsplash.com/photo-1561758033-d8f48f85b39e?auto=format&fit=crop&w=600&q=80", # 示意圖
+            "size": "full",
+            "aspectRatio": "20:13",
+            "aspectMode": "cover"
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {"type": "text", "text": "排隊揪團中 🍔", "weight": "bold", "size": "xl", "color": "#1DB446"},
+                {"type": "text", "text": group_data['store'], "weight": "bold", "size": "xxl", "margin": "md"},
+                {"type": "text", "text": f"發起人: {group_data['host_name']}", "size": "sm", "color": "#aaaaaa", "wrap": True},
+                {"type": "separator", "margin": "xxl"},
+                {"type": "box", "layout": "vertical", "margin": "xxl", "spacing": "sm", "contents": [
+                    {"type": "box", "layout": "baseline", "spacing": "sm", "contents": [
+                        {"type": "text", "text": "時間", "color": "#aaaaaa", "size": "sm", "flex": 1},
+                        {"type": "text", "text": group_data['created_at'], "wrap": True, "color": "#666666", "size": "sm", "flex": 5}
+                    ]}
+                ]}
+            ]
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "sm",
+            "contents": [
+                {
+                    "type": "button",
+                    "style": "primary",
+                    "height": "sm",
+                    "action": {
+                        "type": "uri",
+                        "label": "我要跟團 +1",
+                        "uri": join_url
+                    },
+                    "color": "#00b900"
+                }
+            ]
+        }
+    }
+    return bubble
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
+
+html
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueTogether</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input, select, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px; border: 1px solid #ddd; box-sizing: border-box; }
+        button { background-color: #00b900; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:disabled { background-color: #ccc; }
+        h2 { color: #333; margin-top: 0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div id="loading">載入中...</div>
+
+        <div id="host-view" class="hidden">
+            <h2>🍔 發起排隊</h2>
+            <input type="text" id="storeName" placeholder="輸入店家名稱 (如: 50嵐)">
+            <button id="createBtn" onclick="createGroup()">建立揪團卡片</button>
+        </div>
+
+        <div id="guest-view" class="hidden">
+            <h2>📝 我要跟團</h2>
+            <p id="groupInfo">正在加入團購...</p>
+            <input type="text" id="orderItem" placeholder="你想吃/喝什麼？(如: 珍奶半糖)">
+            <button id="joinBtn" onclick="joinGroup()">送出訂單</button>
+        </div>
+    </div>
+
+    <script>
+        // 從後端傳來的變數
+        const LIFF_ID = "{{ liff_id }}"; 
+        const GROUP_ID = "{{ group_id }}"; // 如果是 None 則為空字串
+
+        async function main() {
+            await liff.init({ liffId: LIFF_ID });
+            
+            if (!liff.isLoggedIn()) {
+                liff.login();
+                return;
+            }
+
+            const profile = await liff.getProfile();
+            window.currentUser = profile;
+            document.getElementById('loading').style.display = 'none';
+
+            // 判斷模式
+            if (GROUP_ID && GROUP_ID !== 'None') {
+                // 跟團模式
+                document.getElementById('guest-view').classList.remove('hidden');
+                document.getElementById('groupInfo').innerText = `加入訂單 ID: ${GROUP_ID}`;
+            } else {
+                // 發起模式
+                document.getElementById('host-view').classList.remove('hidden');
+            }
+        }
+
+        // Host: 建立群組並發送卡片
+        async function createGroup() {
+            const store = document.getElementById('storeName').value;
+            if (!store) return alert('請輸入店家名稱');
+
+            const res = await fetch('/api/create_group', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    userId: window.currentUser.userId,
+                    userName: window.currentUser.displayName,
+                    storeName: store
+                })
+            });
+            
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                // 使用 LIFF API 直接在聊天室發送卡片
+                await liff.sendMessages([{
+                    type: "flex",
+                    altText: "有人發起排隊囉！",
+                    contents: data.flex_message
+                }]);
+                liff.closeWindow();
+            }
+        }
+
+        // Guest: 加入訂單
+        async function joinGroup() {
+            const item = document.getElementById('orderItem').value;
+            if (!item) return alert('請輸入餐點');
+
+            const res = await fetch('/api/join_group', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    groupId: GROUP_ID,
+                    userName: window.currentUser.displayName,
+                    item: item
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert('成功加入！目前人數: ' + data.current_count);
+                liff.closeWindow();
+            } else {
+                alert('錯誤: ' + data.msg);
+            }
+        }
+
+        main();
+    </script>
+</body>
+</html>
+
+
