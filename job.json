@@ -255,3 +255,92 @@
     ]
   }
 ]
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import os
+import requests
+from datetime import datetime
+
+# --- 配置區 ---
+TOKEN = "你的_BOT_TOKEN"
+CHAT_ID = "你的_CHAT_ID"
+HISTORY_FILE = "sent_jobs_history.xlsx"  # 記錄已發送過的職位
+
+def send_tg_message(text):
+    """傳送 HTML 格式訊息至 TG"""
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
+    try:
+        requests.post(url, data=payload)
+    except Exception as e:
+        print(f"Telegram 傳送失敗: {e}")
+
+# 1. 載入歷史紀錄 (中斷後繼續執行的關鍵)
+if os.path.exists(HISTORY_FILE):
+    df_history = pd.read_excel(HISTORY_FILE)
+    # 確保 job_id 轉換為字串集合，方便快速比對
+    sent_job_ids = set(df_history['job_id'].astype(str).tolist())
+    print(f"✅ 已載入歷史紀錄，共 {len(sent_job_ids)} 筆已發送職位。")
+else:
+    df_history = pd.DataFrame()
+    sent_job_ids = set()
+    print("🆕 未發現歷史紀錄，將建立新檔案。")
+
+# --- 爬蟲獲取資料部分 ---
+# 假設 jobs 是您經過 search_job_transform 處理後的 list
+# jobs = [job104_spider.search_job_transform(job) for job in jobs]
+
+# 2. 過濾掉已發送過的職缺
+new_jobs = [j for j in jobs if str(j['job_id']) not in sent_job_ids]
+
+# 3. 發送新職缺並記錄
+if new_jobs:
+    print(f"發現 {len(new_jobs)} 筆新職缺！")
+    
+    for job in new_jobs:
+        # 建立美觀訊息
+        msg = (
+            f"<b>🆕 發現新職缺！</b>\n"
+            f"🔹 <b>{job['name']}</b>\n"
+            f"🏢 {job['company_name']}\n"
+            f"💰 {job['salary']}\n"
+            f"📍 {job['company_addr']}\n"
+            f"🔗 <a href='{job['job_url']}'>點我查看職缺</a>\n"
+        )
+        
+        # 傳送至 Telegram
+        send_tg_message(msg)
+        
+        # 記錄到已發送集合中
+        sent_job_ids.add(str(job['job_id']))
+
+    # 4. 更新並存回 Excel (中斷後再回來讀取這份)
+    df_new = pd.DataFrame(new_jobs)
+    # 合併舊紀錄與新紀錄
+    df_final = pd.concat([df_history, df_new], ignore_index=True)
+    # 確保不會因為邏輯錯誤有重複
+    df_final.drop_duplicates(subset=['job_id'], keep='first', inplace=True)
+    
+    df_final.to_excel(HISTORY_FILE, index=False)
+    print(f"💾 已更新 Excel 紀錄檔案：{HISTORY_FILE}")
+else:
+    print("😴 目前沒有新的職缺需要發送。")
+
+
+
+
+
+
