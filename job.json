@@ -1,0 +1,257 @@
+[
+  {
+    'job_id': '8tccf',
+    'type': '1',
+    'name': '115年研發替代役 - 軟/韌體工程師',
+    'appear_date': '20260112',
+    'apply_num': 32,
+    'apply_text': '大於30人應徵',
+    'company_name': '旺宏電子股份有限公司',
+    'company_addr': '新竹市 力行路16號',
+    'job_url': 'https://www.104.com.tw/job/8tccf?jobsource=hotjob_chr',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/8tccf?channel=104rpt&jobsource=hotjob_chr',
+    'job_company_url': 'https://www.104.com.tw/company/a5hi0dc?jobsource=hotjob_chr',
+    'lon': '121.0251782',
+    'lat': '24.7674628',
+    'education': '碩士',
+    'period': '經歷不拘',
+    'salary': '待遇面議',
+    'salary_high': 0,
+    'salary_low': 0,
+    'tags': {
+      'zone': {
+        'desc': '上市上櫃',
+        'param': 16
+      },
+      'emp': {
+        'desc': '員工3900人',
+        'param': '8'
+      }
+    }
+  },
+  {
+    'job_id': '8x2tr',
+    'type': '0',
+    'name': 'Python工程師(竹科)',
+    'appear_date': '20260107',
+    'apply_num': 4,
+    'apply_text': '0~5人應徵',
+    'company_name': '前進國際股份有限公司',
+    'company_addr': '新竹市 ',
+    'job_url': 'https://www.104.com.tw/job/8x2tr?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/8x2tr?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/7hlkrgw?jobsource=2018indexpoc',
+    'lon': '120.9674798',
+    'lat': '24.8138287',
+    'education': '學歷不拘',
+    'period': '2年以上',
+    'salary': '待遇面議',
+    'salary_high': 0,
+    'salary_low': 0,
+    'tags': {
+      'emp': {
+        'desc': '員工80人',
+        'param': '5'
+      }
+    }
+  },
+  {
+    'job_id': '8x2u8',
+    'type': '0',
+    'name': '資料工程師(竹科)',
+    'appear_date': '20260107',
+    'apply_num': 3,
+    'apply_text': '0~5人應徵',
+    'company_name': '前進國際股份有限公司',
+    'company_addr': '新竹市 ',
+    'job_url': 'https://www.104.com.tw/job/8x2u8?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/8x2u8?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/7hlkrgw?jobsource=2018indexpoc',
+    'lon': '120.9674798',
+    'lat': '24.8138287',
+    'education': '學歷不拘',
+    'period': '2年以上',
+    'salary': '待遇面議',
+    'salary_high': 0,
+    'salary_low': 0,
+    'tags': {
+      'emp': {
+        'desc': '員工80人',
+        'param': '5'
+      }
+    }
+  },
+  {
+    'job_id': '775wh',
+    'type': '2',
+    'name': 'ICC_Data Engineer',
+    'appear_date': '20251127',
+    'apply_num': 3,
+    'apply_text': '0~5人應徵',
+    'company_name': 'Zyxel Networks_兆勤科技股份有限公司(合勤集團)',
+    'company_addr': '新竹市 新竹科學園區工業東九路2號/新北市新店區北新路3段225號11樓',
+    'job_url': 'https://www.104.com.tw/job/775wh?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/775wh?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/1a2x6bli45?jobsource=2018indexpoc',
+    'lon': '121.0084919',
+    'lat': '24.7732416',
+    'education': '碩士',
+    'period': '1年以上',
+    'salary': '待遇面議',
+    'salary_high': 0,
+    'salary_low': 0,
+    'tags': {
+      'emp': {
+        'desc': '員工400人',
+        'param': '7'
+      }
+    }
+  },
+  {
+    'job_id': 'fkx5',
+    'type': '0',
+    'name': 'CAD  Engineer',
+    'appear_date': '20251128',
+    'apply_num': 2,
+    'apply_text': '0~5人應徵',
+    'company_name': '智成電子股份有限公司',
+    'company_addr': '新竹市 科學工業園區力行6路6號8樓',
+    'job_url': 'https://www.104.com.tw/job/fkx5?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/fkx5?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/5wzol4o?jobsource=2018indexpoc',
+    'lon': '121.01464033126831',
+    'lat': '24.77346735708958',
+    'education': '大學',
+    'period': '經歷不拘',
+    'salary': '待遇面議',
+    'salary_high': 0,
+    'salary_low': 0,
+    'tags': [
+      
+    ]
+  },
+  {
+    'job_id': '89suk',
+    'type': '2',
+    'name': '加速器控制系統研發工程人員',
+    'appear_date': '20260106',
+    'apply_num': 2,
+    'apply_text': '0~5人應徵',
+    'company_name': '財團法人國家同步輻射研究中心',
+    'company_addr': '新竹市 新竹科學園區新安路101號',
+    'job_url': 'https://www.104.com.tw/job/89suk?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/89suk?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/2kmqv0o?jobsource=2018indexpoc',
+    'lon': '120.993378',
+    'lat': '24.781086',
+    'education': '碩士',
+    'period': '經歷不拘',
+    'salary': '月薪60,000元以上',
+    'salary_high': 60000,
+    'salary_low': 9999999,
+    'tags': {
+      'emp': {
+        'desc': '員工450人',
+        'param': '7'
+      }
+    }
+  },
+  {
+    'job_id': '8weex',
+    'type': '0',
+    'name': '韌體工程師',
+    'appear_date': '20251229',
+    'apply_num': 2,
+    'apply_text': '0~5人應徵',
+    'company_name': '台灣智慧感測股份有限公司',
+    'company_addr': '新竹市 力行一路1號矽導研發中心',
+    'job_url': 'https://www.104.com.tw/job/8weex?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/8weex?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/1a2x6bnlm1?jobsource=2018indexpoc',
+    'lon': '121.0173543',
+    'lat': '24.7740422',
+    'education': '專科',
+    'period': '1年以上',
+    'salary': '月薪55,000~80,000元',
+    'salary_high': 55000,
+    'salary_low': 80000,
+    'tags': {
+      'emp': {
+        'desc': '員工3人',
+        'param': '1'
+      }
+    }
+  },
+  {
+    'job_id': '8mt8q',
+    'type': '0',
+    'name': '研發工程師',
+    'appear_date': '20250509',
+    'apply_num': 3,
+    'apply_text': '0~5人應徵',
+    'company_name': '博梭智能科技股份有限公司',
+    'company_addr': '新竹市 力行一路1號1樓A2-A01室',
+    'job_url': 'https://www.104.com.tw/job/8mt8q?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/8mt8q?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/1a2x6bnaku?jobsource=2018indexpoc',
+    'lon': '121.0164719',
+    'lat': '24.7716935',
+    'education': '大學',
+    'period': '經歷不拘',
+    'salary': '待遇面議',
+    'salary_high': 0,
+    'salary_low': 0,
+    'tags': [
+      
+    ]
+  },
+  {
+    'job_id': '8rwr0',
+    'type': '0',
+    'name': '【竹科/ 竹北/ 內湖】軟體/ 硬體測試工程師｜派駐聯發科',
+    'appear_date': '20260109',
+    'apply_num': 5,
+    'apply_text': '0~5人應徵',
+    'company_name': '宏碁創達股份有限公司',
+    'company_addr': '新竹市 ',
+    'job_url': 'https://www.104.com.tw/job/8rwr0?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/8rwr0?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/1a2x6bmt9z?jobsource=2018indexpoc',
+    'lon': '120.9674798',
+    'lat': '24.8138287',
+    'education': '專科',
+    'period': '經歷不拘',
+    'salary': '月薪35,000元以上',
+    'salary_high': 35000,
+    'salary_low': 9999999,
+    'tags': {
+      'emp': {
+        'desc': '員工600人',
+        'param': '8'
+      }
+    }
+  },
+  {
+    'job_id': '8v6pl',
+    'type': '0',
+    'name': '新竹市｜【美商｜全球核心處理器之領導廠商】軟/硬體測試助理工程師｜保障14個月HCS-1801',
+    'appear_date': '20260106',
+    'apply_num': 1,
+    'apply_text': '0~5人應徵',
+    'company_name': '藝珂人事顧問股份有限公司',
+    'company_addr': '新竹市 ',
+    'job_url': 'https://www.104.com.tw/job/8v6pl?jobsource=2018indexpoc',
+    'job_analyze_url': 'https://www.104.com.tw/jobs/apply/analysis/8v6pl?channel=104rpt&jobsource=apply_analyze',
+    'job_company_url': 'https://www.104.com.tw/company/1303ngy0?jobsource=2018indexpoc',
+    'lon': '120.9674798',
+    'lat': '24.8138287',
+    'education': '大學',
+    'period': '經歷不拘',
+    'salary': '月薪40,000元以上',
+    'salary_high': 40000,
+    'salary_low': 9999999,
+    'tags': [
+      
+    ]
+  }
+]
