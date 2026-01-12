@@ -343,4 +343,91 @@ else:
 
 
 
+import pandas as pd
+import requests
+import os
+from datetime import datetime
+
+# --- 配置區 ---
+TOKEN = "你的_BOT_TOKEN"
+CHAT_ID = "你的_CHAT_ID"
+HISTORY_FILE = "sent_jobs_history.xlsx"  # 用來記錄已傳送過的職缺
+
+def send_tg_message(text):
+    """傳送 HTML 格式的訊息到 Telegram"""
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
+    try:
+        response = requests.post(url, data=payload)
+        return response
+    except Exception as e:
+        print(f"發送 TG 失敗: {e}")
+
+# --- 處理流程 ---
+
+# 假設 jobs 是您 spider 轉換後的 list
+# jobs = [job104_spider.search_job_transform(job) for job in jobs]
+
+# 1. 讀取歷史紀錄 (中斷後繼續執行的關鍵)
+if os.path.exists(HISTORY_FILE):
+    df_history = pd.read_excel(HISTORY_FILE)
+    # 轉成 set 提高比對速度，確保 job_id 是字串
+    sent_job_ids = set(df_history['job_id'].astype(str).tolist())
+    print(f"載入歷史紀錄：目前已發送過 {len(sent_job_ids)} 個職位")
+else:
+    df_history = pd.DataFrame()
+    sent_job_ids = set()
+    print("未發現歷史紀錄，將建立新檔案")
+
+# 2. 轉成 DataFrame 並篩選「今天」且「未傳送過」的職缺
+df_all = pd.DataFrame(jobs)
+today_str = datetime.now().strftime('%Y%m%d')
+
+# 過濾條件：日期是今天 且 job_id 不在已傳送清單中
+today_new_jobs = df_all[
+    (df_all['appear_date'] == today_str) & 
+    (~df_all['job_id'].astype(str).isin(sent_job_ids))
+]
+
+# 3. 格式化訊息並發送
+if not today_new_jobs.empty:
+    msg = f"<b>📅 今日新職缺快報 ({today_str})</b>\n"
+    msg += f"找到 {len(today_new_jobs)} 筆新更新：\n"
+    msg += "—" * 10 + "\n\n"
+
+    for _, row in today_new_jobs.iterrows():
+        job_item = (
+            f"🔹 <b>{row['name']}</b>\n"
+            f"🏢 公司：{row['company_name']}\n"
+            f"💰 待遇：{row['salary']}\n"
+            f"🎓 學歷：{row['education']} / {row['period']}\n"
+            f"📍 地點：{row['company_addr']}\n"
+            f"🔗 <a href='{row['job_url']}'>點我查看職缺詳情</a>\n\n"
+        )
+        msg += job_item
+
+    # 傳送訊息
+    send_tg_message(msg)
+    print(f"已發送 {len(today_new_jobs)} 筆新職缺至 Telegram！")
+
+    # 4. 更新歷史紀錄檔案
+    # 將這次新發送的職缺合併到舊紀錄中
+    df_updated_history = pd.concat([df_history, today_new_jobs], ignore_index=True)
+    # 移除重複項（保險起見）
+    df_updated_history.drop_duplicates(subset=['job_id'], keep='first', inplace=True)
+    # 存回 Excel
+    df_updated_history.to_excel(HISTORY_FILE, index=False)
+    print(f"歷史紀錄已更新至 {HISTORY_FILE}")
+
+else:
+    print(f"📢 {today_str} 沒有新的未傳送職缺。")
+
+
+
+
 
