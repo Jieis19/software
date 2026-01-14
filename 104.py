@@ -206,3 +206,75 @@ if __name__ == "__main__":
 
     else:
         print(f"?? {today_str} 沒有新的未傳送職缺。")
+
+
+
+
+
+
+import os
+import time
+import threading
+import pandas as pd
+from flask import Flask, request
+
+# --- 配置 ---
+TOKEN = os.environ.get("TG_TOKEN")
+USERS_FILE = "subscribers.csv"  # 記錄所有使用者的 ID
+
+# 儲存使用者的函式
+def save_user(chat_id):
+    chat_id = str(chat_id)
+    if os.path.exists(USERS_FILE):
+        df = pd.read_csv(USERS_FILE)
+        if chat_id not in df['chat_id'].astype(str).values:
+            new_df = pd.concat([df, pd.DataFrame({'chat_id': [chat_id]})])
+            new_df.to_csv(USERS_FILE, index=False)
+    else:
+        pd.DataFrame({'chat_id': [chat_id]}).to_csv(USERS_FILE, index=False)
+
+# 取得所有使用者
+def get_all_users():
+    if os.path.exists(USERS_FILE):
+        df = pd.read_csv(USERS_FILE)
+        return df['chat_id'].astype(str).tolist()
+    return [] # 如果沒檔案，回傳空清單（或填入你自己的 ID 當預設）
+
+# --- 修改後的發送函式 ---
+def broadcast_jobs(msg_text):
+    users = get_all_users()
+    if not users:
+        print("目前沒有訂閱者。")
+        return
+    
+    for chat_id in users:
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        payload = {"chat_id": chat_id, "text": msg_text, "parse_mode": "HTML"}
+        try:
+            requests.post(url, data=payload)
+            time.sleep(0.05) # 稍微延遲避免被 TG 判定為垃圾訊息
+        except Exception as e:
+            print(f"發送給 {chat_id} 失敗: {e}")
+
+# --- 自動接收 /start 指令 ---
+# 你需要設定 Webhook 或使用 GetUpdates 輪詢
+def check_for_new_users():
+    last_update_id = 0
+    while True:
+        try:
+            url = f"https://api.telegram.org/bot{TOKEN}/getUpdates?offset={last_update_id + 1}"
+            res = requests.get(url).json()
+            if res.get("result"):
+                for update in res["result"]:
+                    last_update_id = update["update_id"]
+                    if "message" in update and "/start" in update["message"].get("text", ""):
+                        chat_id = update["message"]["chat"]["id"]
+                        save_user(chat_id)
+                        # 回傳歡迎訊息
+                        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                                      data={"chat_id": chat_id, "text": "訂閱成功！有新職缺我會通知你。"})
+        except:
+            pass
+        time.sleep(5)
+
+
