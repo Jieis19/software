@@ -107,3 +107,73 @@ while running:
     clock.tick(60)
 
 pygame.quit()
+
+
+
+
+
+import IPython
+from google.colab import output
+
+# 使用 HTML5 Canvas 製作轉盤
+html_code = """
+<div style="text-align:center; font-family: sans-serif;">
+    <h2 id="result">今晚吃什麼？</h2>
+    <canvas id="wheel" width="400" height="400"></canvas><br>
+    <button onclick="spin()" style="padding:10px 20px; font-size:18px; cursor:pointer; background:#ff4757; color:white; border:none; border-radius:5px;">點我旋轉</button>
+</div>
+
+<script>
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const options = ["中正西路", "南寮", "新豐", "夜市", "湳雅", "其他"];
+const colors = ["#ff4757", "#ffa502", "#eccc68", "#2ed573", "#1e90ff", "#a29bfe"];
+let currentAngle = 0;
+
+function drawWheel() {
+    const arc = Math.PI / (options.length / 2);
+    options.forEach((opt, i) => {
+        const angle = currentAngle + i * arc;
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.moveTo(200, 200);
+        ctx.arc(200, 200, 180, angle, angle + arc);
+        ctx.fill();
+        ctx.stroke();
+        
+        // 畫文字
+        ctx.save();
+        ctx.translate(200 + Math.cos(angle + arc/2) * 120, 200 + Math.sin(angle + arc/2) * 120);
+        ctx.rotate(angle + arc/2 + Math.PI/2);
+        ctx.fillStyle = "black";
+        ctx.fillText(opt, -ctx.measureText(opt).width/2, 0);
+        ctx.restore();
+    });
+}
+
+function spin() {
+    let speed = Math.random() * 0.4 + 0.4;
+    let friction = 0.98;
+    function animate() {
+        currentAngle += speed;
+        speed *= friction;
+        drawWheel();
+        if (speed > 0.001) {
+            requestAnimationFrame(animate);
+        } else {
+            // 計算結果
+            const degrees = (currentAngle * 180 / Math.PI) % 360;
+            const index = Math.floor((360 - degrees) % 360 / (360 / options.length));
+            document.getElementById('result').innerText = "結果：" + options[index];
+        }
+    }
+    animate();
+}
+drawWheel();
+</script>
+"""
+
+display(IPython.display.HTML(html_code))
+
+
+
