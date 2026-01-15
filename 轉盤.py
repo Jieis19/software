@@ -355,3 +355,111 @@ display(IPython.display.HTML(html_code))
 
 
 
+
+
+
+
+
+
+
+!pip install geopy -q
+
+import IPython
+from google.colab import output
+from geopy.geocoders import Nominatim
+import requests
+import random
+
+# --- 設定區 ---
+target = input("輸入地點 (例如: 竹科): ")
+num_count = int(input("想要顯示幾間餐廳? (建議 6-12): ")) # 在這裡設定間數
+# --------------
+
+def get_real_restaurants(location_query, radius=10000, count=10):
+    try:
+        geolocator = Nominatim(user_agent="dinner_wheel_app")
+        location = geolocator.geocode(location_query)
+        if not location: return ["找不到地點"] * count
+
+        overpass_url = "http://overpass-api.de/api/interpreter"
+        overpass_query = f"""
+        [out:json];
+        node["amenity"~"restaurant|fast_food|cafe"](around:{radius},{location.latitude},{location.longitude});
+        out 50;
+        """
+        response = requests.get(overpass_url, params={'data': overpass_query})
+        data = response.json()
+        places = list(set([element['tags'].get('name') for element in data['elements'] if 'name' in element['tags']]))
+        
+        # 根據使用者要求的數量隨機挑選
+        return random.sample(places, min(len(places), count))
+    except:
+        return ["連線逾時"] * count
+
+restaurants = get_real_restaurants(target, count=num_count)
+res_list_js = str(restaurants)
+
+# HTML 部分 (維持原本邏輯，它會自動根據 restaurants 的長度切分扇區)
+html_code = f"""
+<div style="text-align:center; font-family: 'Microsoft JhengHei';">
+    <h2 id="result" style="color: #333;">抽到了幾間：{len(restaurants)} 間</h2>
+    <div style="position: relative; display: inline-block;">
+        <canvas id="wheel" width="380" height="380"></canvas>
+        <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid red; z-index: 10;"></div>
+    </div>
+    <br><br>
+    <button onclick="spin()" style="padding: 15px 50px; font-size: 20px; cursor: pointer; background: #333; color: white; border-radius: 10px;">START</button>
+</div>
+
+<script>
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const options = {res_list_js};
+// 這裡會自動計算間數： 360度 / options.length
+const arc = (2 * Math.PI) / options.length; 
+let currentAngle = 0;
+
+function drawWheel() {{
+    ctx.clearRect(0, 0, 380, 380);
+    options.forEach((opt, i) => {{
+        const angle = currentAngle + i * arc;
+        ctx.fillStyle = `hsl(${{(i * 360 / options.length)}}, 70%, 60%)`; // 自動生成不重複顏色
+        ctx.beginPath();
+        ctx.moveTo(190, 190);
+        ctx.arc(190, 190, 180, angle, angle + arc);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.save();
+        ctx.translate(190, 190);
+        ctx.rotate(angle + arc / 2);
+        ctx.fillStyle = "white";
+        ctx.fillText(opt.substring(0, 8), 100, 5);
+        ctx.restore();
+    }});
+}}
+// ... (其餘 spin 函數邏輯相同)
+function spin() {{
+    let speed = Math.random() * 0.3 + 0.4;
+    function animate() {{
+        currentAngle += speed; speed *= 0.985;
+        drawWheel();
+        if (speed > 0.002) requestAnimationFrame(animate);
+    }}
+    animate();
+}}
+drawWheel();
+</script>
+"""
+display(IPython.display.HTML(html_code))
+
+
+
+
+
+
+
+
+
+
+
