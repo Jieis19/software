@@ -459,3 +459,89 @@ if __name__ == "__main__":
 
 
 
+
+
+
+
+
+
+    def search_today_jobs(self, keyword):
+        """搜尋當天更新且未發送過的職缺"""
+        # 1. 檢查日期是否變更
+        current_date = datetime.now().strftime('%Y%m%d')
+        if current_date != self.last_run_date:
+            print(f"--- 偵測到新的一天 ({current_date})，清空舊紀錄 ---")
+            self.sent_jobs.clear()
+            self.last_run_date = current_date
+
+        url = 'https://www.104.com.tw/jobs/search/api/jobs'
+        today_jobs = []
+        
+        print(f"正在檢查 {keyword} 的今日新職缺...")        
+        
+        for i in range(1, 6):  # 先爬前 5 頁測試
+            params = {
+                'ro': '0',
+                'kwop': '7',
+                'keyword': keyword,
+                'mode': 's',
+                'order': '2',
+                'asc': '0',
+                'page': i
+            }
+
+            try:
+                r = requests.get(url, params=params, headers=self.headers)
+                if r.status_code != 200: 
+                    break
+
+                # --- 修正後的資料讀取邏輯 ---
+                json_data = r.json()
+                
+                # 安全獲取 job list
+                # 有些版本在 data['list']，有些直接在 data
+                data_content = json_data.get('data', {})
+                if isinstance(data_content, dict):
+                    all_jobs = data_content.get('list', [])
+                else:
+                    all_jobs = data_content # 如果 data 直接是 list
+
+                if not all_jobs:
+                    break
+
+                for job in all_jobs:
+                    job_id = job.get('jobNo')
+                    appear_date = job.get('appearDate')
+
+                    # 篩選條件
+                    if appear_date == current_date and '新竹' in job.get('jobAddrNoDesc', ''):
+                        if job_id not in self.sent_jobs:
+                            job_link = job['link']['job']
+                            job_url = f"https:{job_link}" if job_link.startswith('//') else job_link
+                            
+                            # 薪資欄位處理（API 欄位名稱有時會變動，建議用 salaryDesc）
+                            salary = job.get('salaryDesc', '面議')
+                            
+                            msg = (
+                                f"<b>🔥 新職缺通知: {keyword}</b>\n"
+                                f"職位: {job['jobName']}\n"
+                                f"公司: {job['custName']}\n"
+                                f"薪資: {salary}\n"
+                                f"地點: {job['jobAddrNoDesc']}\n"
+                                f"<a href='{job_url}'>點擊查看職缺</a>"
+                            )
+                            today_jobs.append(msg)
+                            self.sent_jobs.add(job_id)
+                
+                # 檢查最後一個職缺日期，若過期則停止翻頁
+                if all_jobs[-1].get('appearDate') != current_date:
+                    break
+                    
+                time.sleep(random.uniform(1, 3)) 
+            except Exception as e:
+                print(f"解析發生錯誤: {e}")
+                break
+
+        return today_jobs
+
+
