@@ -333,6 +333,126 @@ if __name__ == "__main__":
 
 
 
+import time
+import random
+import requests
+import pandas as pd
+from datetime import datetime
+
+class Job104TelegramBot():
+    def __init__(self, tg_token, tg_chat_id):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.104.com.tw/jobs/search/',
+        }
+        self.tg_token = tg_token
+        self.tg_chat_id = tg_chat_id
+        # 新增：儲存已發送過的職缺 ID
+        self.sent_jobs = set()
+        # 新增：紀錄最後一次執行的日期
+        self.last_run_date = datetime.now().strftime('%Y%m%d')
+
+    def send_tg_message(self, message):
+        """發送訊息到 Telegram"""
+        url = f"https://api.telegram.org/bot{self.tg_token}/sendMessage"
+        payload = {
+            "chat_id": self.tg_chat_id,
+            "text": message,
+            "parse_mode": "HTML"
+        }
+        try:
+            requests.post(url, data=payload)
+        except Exception as e:
+            print(f"Telegram 發送失敗: {e}")
+
+    def search_today_jobs(self, keyword):
+        """搜尋當天更新且未發送過的職缺"""
+        # 1. 檢查日期是否變更，若是隔天則清空紀錄
+        current_date = datetime.now().strftime('%Y%m%d')
+        if current_date != self.last_run_date:
+            print(f"--- 偵測到新的一天 ({current_date})，清空舊紀錄 ---")
+            self.sent_jobs.clear()
+            self.last_run_date = current_date
+
+        url = 'https://www.104.com.tw/jobs/search/api/jobs'
+        today_jobs = []
+        
+        print(f"正在檢查 {keyword} 的今日新職缺...")        
+        
+        for i in range(1, 11):  # 爬取前 10 頁通常就足夠涵蓋當日更新
+            params = {
+                'ro': '0',
+                'kwop': '7',
+                'keyword': keyword,
+                'mode': 's',
+                'order': '2', # 以日期排序
+                'asc': '0',   # 降冪
+                'page': i
+            }
+
+            try:
+                r = requests.get(url, params=params, headers=self.headers)
+                if r.status_code != 200: 
+                    break
+
+                all_jobs = r.json().get('data', {}).get('list', []) # 修正: 104 API 結構通常在 data.list
+                if not all_jobs:
+                    break
+
+                for job in all_jobs:
+                    job_id = job.get('jobNo')
+                    appear_date = job.get('appearDate')
+
+                    # 條件：是今天的日期 + 包含新竹 + 尚未發送過
+                    if appear_date == current_date and '新竹' in job.get('jobAddrNoDesc', ''):
+                        if job_id not in self.sent_jobs:
+                            job_link = job['link']['job']
+                            job_url = f"https:{job_link}" if job_link.startswith('//') else job_link
+                            
+                            msg = (
+                                f"<b>🔥 新職缺通知: {keyword}</b>\n"
+                                f"職位: {job['jobName']}\n"
+                                f"公司: {job['custName']}\n"
+                                f"薪資: {job['salaryDesc']}\n"
+                                f"地點: {job['jobAddrNoDesc']}\n"
+                                f"<a href='{job_url}'>點擊查看職缺</a>"
+                            )
+                            today_jobs.append(msg)
+                            # 標記為已發送
+                            self.sent_jobs.add(job_id)
+                        
+                # 如果這頁最後一個職缺日期已經不是今天，就可以提早停止翻頁
+                if all_jobs[-1].get('appearDate') != current_date:
+                    break
+                    
+                time.sleep(random.uniform(1, 2)) # 隨機延遲防爬蟲偵測
+            except Exception as e:
+                print(f"爬取發生錯誤: {e}")
+                break
+
+        return today_jobs
+
+# --- 執行區 ---
+if __name__ == "__main__":
+    MY_TOKEN = "YOUR_BOT_TOKEN"
+    MY_CHAT_ID = "YOUR_CHAT_ID"
+    
+    bot = Job104TelegramBot(MY_TOKEN, MY_CHAT_ID)
+    
+    while True:
+        new_posts = bot.search_today_jobs("工程師")
+        
+        if new_posts:
+            print(f"找到 {len(new_posts)} 筆「新」職缺，準備發送...")
+            for post in new_posts:
+                bot.send_tg_message(post)
+                time.sleep(1) 
+        else:
+            print("目前沒有新的未發送職缺。")
+        
+        # 每隔 15 分鐘搜尋一次，避免過於頻繁
+        print("等待 15 分鐘後進行下一次檢查...")
+        time.sleep(900) 
 
 
 
