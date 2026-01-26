@@ -830,3 +830,90 @@ if __name__ == "__main__":
         # 每分鐘檢查一次（縮短時間以提升 /start 的反應速度）
         time.sleep(60)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def update_subscribers_and_reply(self):
+        """檢查新訊息，若有 /start 則加入名單並回覆"""
+        # 使用更大的 timeout 讓連線穩定，但不阻塞太久
+        url = f"https://api.telegram.org/bot{self.tg_token}/getUpdates"
+        params = {"offset": self.last_update_id + 1, "timeout": 5}
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            r = response.json()
+            
+            if r.get("ok"):
+                results = r.get("result", [])
+                if results:
+                    # 讀取現有訂閱者
+                    existing_ids = set()
+                    if os.path.exists(self.db_file):
+                        with open(self.db_file, "r") as f:
+                            existing_ids = set(line.strip() for line in f)
+
+                    for result in results:
+                        self.last_update_id = result.get("update_id")
+                        message = result.get("message", {})
+                        text = message.get("text", "")
+                        chat_id = str(message.get("chat", {}).get("id"))
+                        username = message.get("from", {}).get("first_name", "Unknown")
+
+                        print(f"📩 收到訊息: [{text}] 來自: {username} ({chat_id})") # 偵錯用
+
+                        if text == "/start":
+                            if chat_id not in existing_ids:
+                                with open(self.db_file, "a") as f:
+                                    f.write(f"{chat_id}\n")
+                                print(f"✅ [新訂閱者] 已加入名單: {username}")
+                                self.send_direct_message(chat_id, f"你好 {username}！已成功訂閱新竹職缺通知。")
+                            else:
+                                print(f"ℹ️  {username} 已經在名單內了。")
+                                self.send_direct_message(chat_id, "你已經在訂閱名單中囉！")
+        except Exception as e:
+            print(f"❌ 讀取訊息發生錯誤: {e}")
+
+# --- 修改後的執行區 ---
+if __name__ == "__main__":
+    TOKEN = "你的_BOT_TOKEN"
+    bot = Job104TelegramBot(TOKEN)
+    
+    print("🚀 機器人已啟動...")
+    print("💡 提示：如果沒反應，請在 Telegram 先停止機器人再重新點擊 /start")
+
+    last_job_check = 0  # 紀錄上次爬蟲時間
+    
+    while True:
+        # 1. 頻繁檢查訊息 (約每幾秒一次)
+        bot.update_subscribers_and_reply()
+        
+        # 2. 定時檢查職缺 (例如每 15 分鐘 = 900 秒)
+        current_time = time.time()
+        if current_time - last_job_check > 900:
+            # 這裡放你的搜尋邏輯
+            new_posts = bot.search_today_jobs("DFT 工程師")
+            if new_posts:
+                for post in new_posts:
+                    bot.broadcast_message(post)
+            last_job_check = current_time
+        
+        time.sleep(1) # 短暫休息，避免 CPU 滿載
+
+
+
+
