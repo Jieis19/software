@@ -1,0 +1,111 @@
+import time
+import random
+import requests
+import pandas as pd
+from datetime import datetime
+import os
+
+class Job104Spider():
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.104.com.tw/jobs/search/',
+        }
+
+    def search(self, keyword, max_mun=10, filter_params=None, sort_type='符合度', is_sort_asc=False):
+        """搜尋職缺並回傳列表"""
+        jobs_list = []
+        url = 'https://www.104.com.tw/jobs/search/api/jobs'
+        sort_dict = {'符合度': '1', '日期': '2', '經歷': '3', '學歷': '4', '應徵人數': '7', '待遇': '13'}
+        
+        params = {
+            'ro': '0',
+            'kwop': '7',
+            'keyword': keyword,
+            'expansionType': 'area,spec,com,job,wf,wktm',
+            'mode': 's',
+            'jobsource': '2018indexpoc',
+            'order': sort_dict.get(sort_type, '1'),
+            'asc': '1' if is_sort_asc else '0',
+            'page': 1
+        }
+        if filter_params:
+            params.update(filter_params)
+
+        print(f"開始搜尋關鍵字: {keyword}...")
+
+        while len(jobs_list) < max_mun:
+            try:
+                r = requests.get(url, params=params, headers=self.headers)
+                r.raise_for_status()
+                resp_data = r.json()
+                
+                new_jobs = resp_data['data']
+                if not new_jobs:
+                    break
+                
+                # 轉換並清理每一筆職缺資料
+                for j in new_jobs:
+                    if len(jobs_list) >= max_mun:
+                        break
+                    jobs_list.append(self.search_job_transform(j))
+                
+                print(f"已取得第 {params['page']} 頁，累計 {len(jobs_list)} 筆資料")
+
+                # 翻頁判斷
+                total_page = resp_data['metadata']['pagination']['lastPage']
+                if params['page'] >= total_page:
+                    break
+                    
+                params['page'] += 1
+                time.sleep(random.uniform(1, 2))
+                
+            except Exception as e:
+                print(f"發生錯誤: {e}")
+                break
+
+        return jobs_list
+
+    def search_job_transform(self, job_data):
+        """格式化職缺資料"""
+        job_link = job_data['link']['job']
+        job_url = f"https:{job_link}" if job_link.startswith('//') else job_link
+        
+        return {
+            '職缺名稱': job_data.get('jobName'),
+            '公司名稱': job_data.get('custName'),
+            '工作地點': f"{job_data.get('jobAddrNoDesc')} {job_data.get('jobAddress')}",
+            '薪資待遇': job_data.get('salaryDesc'),
+            '薪資下限': job_data.get('salaryLow'),
+            '薪資上限': job_data.get('salaryHigh'),
+            '更新日期': job_data.get('appearDate'),
+            '應徵人數': job_data.get('applyCnt'),
+            '連結': job_url
+        }
+
+# --- 執行與存檔 ---
+if __name__ == "__main__":
+    spider = Job104Spider()
+    
+    # 1. 抓取資料 (例如搜尋 Python, 抓 30 筆)
+    keyword = 'Python'
+    job_results = spider.search(keyword, max_mun=30)
+
+    if job_results:
+        # 2. 將列表轉換成 DataFrame
+        df = pd.DataFrame(job_results)
+
+        # 3. 設定存檔路徑 (存到目前使用者的桌面)
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+        filename = f"104職缺搜尋_{keyword}_{datetime.now().strftime('%m%d_%H%M')}.xlsx"
+        save_path = os.path.join(desktop_path, filename)
+
+        # 4. 存檔
+        try:
+            df.to_excel(save_path, index=False, engine='openpyxl')
+            print("-" * 30)
+            print(f"成功！檔案已存至: {save_path}")
+        except Exception as e:
+            print(f"存檔失敗: {e}")
+    else:
+        print("未搜集到任何資料。")
