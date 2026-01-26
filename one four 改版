@@ -545,3 +545,154 @@ if __name__ == "__main__":
         return today_jobs
 
 
+
+
+
+
+
+
+import time
+import random
+import requests
+import os
+from datetime import datetime
+
+class Job104TelegramBot():
+    def __init__(self, tg_token):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.104.com.tw/jobs/search/',
+        }
+        self.tg_token = tg_token
+        self.db_file = "subscribers.txt"  # 儲存訂閱者 ID 的檔案
+        self.sent_jobs = set()            # 儲存今日已發送職缺 ID
+        self.last_run_date = datetime.now().strftime('%Y%m%d')
+        
+        # 初始化時先更新訂閱者清單
+        self.update_subscribers()
+
+    def update_subscribers(self):
+        """透過 getUpdates 檢查是否有新用戶傳送 /start"""
+        url = f"https://api.telegram.org/bot{self.tg_token}/getUpdates"
+        try:
+            r = requests.get(url).json()
+            if r.get("ok"):
+                # 讀取現有的 ID 防止重複
+                existing_ids = set()
+                if os.path.exists(self.db_file):
+                    with open(self.db_file, "r") as f:
+                        existing_ids = set(line.strip() for line in f)
+
+                new_users = False
+                for result in r.get("result", []):
+                    # 只要用戶有互動，就獲取其 chat_id
+                    chat_id = str(result.get("message", {}).get("chat", {}).get("id"))
+                    if chat_id and chat_id not in existing_ids:
+                        existing_ids.add(chat_id)
+                        new_users = True
+                
+                # 如果有新用戶，存入檔案
+                if new_users:
+                    with open(self.db_file, "w") as f:
+                        for uid in existing_ids:
+                            f.write(f"{uid}\n")
+                    print(f"訂閱者名單已更新，目前共 {len(existing_ids)} 人。")
+        except Exception as e:
+            print(f"更新訂閱者清單失敗: {e}")
+
+    def get_all_subscribers(self):
+        """從檔案讀取所有訂閱者 ID"""
+        if not os.path.exists(self.db_file):
+            return []
+        with open(self.db_file, "r") as f:
+            return [line.strip() for line in f]
+
+    def broadcast_message(self, message):
+        """將訊息發送給所有訂閱者"""
+        subscribers = self.get_all_subscribers()
+        url = f"https://api.telegram.org/bot{self.tg_token}/sendMessage"
+        
+        for chat_id in subscribers:
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "HTML"
+            }
+            try:
+                requests.post(url, data=payload)
+                time.sleep(0.1)  # 避免觸發 Telegram 頻率限制
+            except Exception as e:
+                print(f"發送給 {chat_id} 失敗: {e}")
+
+    def search_today_jobs(self, keyword):
+        """搜尋職缺邏輯 (已加入去重與日期重置)"""
+        current_date = datetime.now().strftime('%Y%m%d')
+        if current_date != self.last_run_date:
+            self.sent_jobs.clear()
+            self.last_run_date = current_date
+
+        url = 'https://www.104.com.tw/jobs/search/api/jobs'
+        new_found_jobs = []
+        
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 檢查 {keyword}...")        
+        
+        for i in range(1, 4): # 檢查前3頁
+            params = {'ro': '0', 'kwop': '7', 'keyword': keyword, 'mode': 's', 'order': '2', 'asc': '0', 'page': i}
+            try:
+                r = requests.get(url, params=params, headers=self.headers)
+                data_content = r.json().get('data', {})
+                all_jobs = data_content.get('list', []) if isinstance(data_content, dict) else data_content
+                
+                if not all_jobs: break
+
+                for job in all_jobs:
+                    job_id = job.get('jobNo')
+                    # 條件：今天更新 + 新竹 + 沒發過
+                    if job.get('appearDate') == current_date and '新竹' in job.get('jobAddrNoDesc', ''):
+                        if job_id not in self.sent_jobs:
+                            job_link = job['link']['job']
+                            job_url = f"https:{job_link}" if job_link.startswith('//') else job_link
+                            
+                            msg = (
+                                f"<b>🔥 新職缺: {job['jobName']}</b>\n"
+                                f"公司: {job['custName']}\n"
+                                f"地點: {job['jobAddrNoDesc']}\n"
+                                f"<a href='{job_url}'>點擊查看</a>"
+                            )
+                            new_found_jobs.append(msg)
+                            self.sent_jobs.add(job_id)
+
+                if all_jobs[-1].get('appearDate') != current_date: break
+                time.sleep(1)
+            except: break
+
+        return new_found_jobs
+
+# --- 執行區 ---
+if __name__ == "__main__":
+    TOKEN = "你的_BOT_TOKEN"
+    bot = Job104TelegramBot(TOKEN)
+    
+    print("機器人已啟動，請確保新用戶曾對機器人點擊「/start」...")
+
+    while True:
+        # 1. 先更新訂閱者名單 (檢查是否有新人加入)
+        bot.update_subscribers()
+        
+        # 2. 搜尋職缺
+        new_posts = bot.search_today_jobs("工程師")
+        
+        # 3. 如果有新職缺，廣播給所有人
+        if new_posts:
+            print(f"找到 {len(new_posts)} 筆新職缺，廣播中...")
+            for post in new_posts:
+                bot.broadcast_message(post)
+                time.sleep(1)
+        
+        time.sleep(600) # 每 10 分鐘巡邏一次
+
+
+
+
+
+
