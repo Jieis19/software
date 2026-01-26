@@ -109,3 +109,98 @@ if __name__ == "__main__":
             print(f"存檔失敗: {e}")
     else:
         print("未搜集到任何資料。")
+
+
+
+
+
+import time
+import random
+import requests
+import pandas as pd
+from datetime import datetime
+
+class Job104TelegramBot():
+    def __init__(self, tg_token, tg_chat_id):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.104.com.tw/jobs/search/',
+        }
+        self.tg_token = tg_token
+        self.tg_chat_id = tg_chat_id
+
+    def send_tg_message(self, message):
+        """發送訊息到 Telegram"""
+        url = f"https://api.telegram.org/bot{self.tg_token}/sendMessage"
+        payload = {
+            "chat_id": self.tg_chat_id,
+            "text": message,
+            "parse_mode": "HTML"
+        }
+        try:
+            requests.post(url, data=payload)
+        except Exception as e:
+            print(f"Telegram 發送失敗: {e}")
+
+    def search_today_jobs(self, keyword):
+        """搜尋當天更新的職缺"""
+        url = 'https://www.104.com.tw/jobs/search/api/jobs'
+        today_str = datetime.now().strftime('%Y%m%d') # 格式如 20240520
+        
+        params = {
+            'ro': '0',
+            'kwop': '7',
+            'keyword': keyword,
+            'mode': 's',
+            'order': '2', # 以日期排序
+            'asc': '0',   # 降冪（新的在前）
+            'page': 1
+        }
+
+        print(f"正在檢查 {keyword} 的今日新職缺...")
+        r = requests.get(url, params=params, headers=self.headers)
+        if r.status_code != 200: return []
+
+        all_jobs = r.json().get('data', [])
+        today_jobs = []
+
+        for job in all_jobs:
+            # 104 的 appearDate 格式通常是 "20240520"
+            if job.get('appearDate') == today_str:
+                job_url = f"https:{job['link']['job']}"
+                msg = (
+                    f"<b>🔥 新職缺通知: {keyword}</b>\n"
+                    f"職位: {job['jobName']}\n"
+                    f"公司: {job['custName']}\n"
+                    f"薪資: {job['salaryDesc']}\n"
+                    f"地點: {job['jobAddrNoDesc']}\n"
+                    f"<a href='{job_url}'>點擊查看職缺</a>"
+                )
+                today_jobs.append(msg)
+        
+        return today_jobs
+
+# --- 執行區 ---
+if __name__ == "__main__":
+    # 請填入你的 Telegram 資訊
+    MY_TOKEN = "你的_BOT_TOKEN"
+    MY_CHAT_ID = "你的_CHAT_ID"
+    
+    bot = Job104TelegramBot(MY_TOKEN, MY_CHAT_ID)
+    
+    # 執行搜尋
+    new_posts = bot.search_today_jobs("Python")
+    
+    if new_posts:
+        print(f"找到 {len(new_posts)} 筆新職缺，準備發送...")
+        for post in new_posts:
+            bot.send_tg_message(post)
+            time.sleep(1) # 避免發送過快被黑名單
+    else:
+        print("今天目前沒有新職缺。")
+
+
+
+
+
+
