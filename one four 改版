@@ -1054,3 +1054,129 @@ if __name__ == "__main__":
             last_job_check = current_time
         
         time.sleep(1) # 短暫休息，避免 CPU 滿載
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import time
+import random
+import requests
+import os
+import threading # 引入多執行緒
+from datetime import datetime
+
+class Job104TelegramBot():
+    def __init__(self, tg_token):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.104.com.tw/jobs/search/',
+        }
+        self.tg_token = tg_token
+        self.db_file = "subscribers.txt"
+        self.sent_jobs = set()
+        self.last_run_date = datetime.now().strftime('%Y%m%d')
+        self.last_update_id = 0
+
+    def handle_updates(self):
+        """專門負責秒回 /start 的無窮迴圈"""
+        print("🤖 訊息監聽執行緒已啟動 (秒回模式)...")
+        while True:
+            url = f"https://api.telegram.org/bot{self.tg_token}/getUpdates"
+            params = {"offset": self.last_update_id + 1, "timeout": 20} # 使用 Long Polling
+            try:
+                r = requests.get(url, params=params, timeout=25).json()
+                if r.get("ok"):
+                    for result in r.get("result", []):
+                        self.last_update_id = result.get("update_id")
+                        message = result.get("message", {})
+                        text = message.get("text", "")
+                        chat_id = str(message.get("chat", {}).get("id"))
+                        username = message.get("from", {}).get("first_name", "User")
+
+                        if text == "/start":
+                            # 檢查名單
+                            existing_ids = []
+                            if os.path.exists(self.db_file):
+                                with open(self.db_file, "r") as f:
+                                    existing_ids = [line.strip() for line in f]
+                            
+                            if chat_id not in existing_ids:
+                                with open(self.db_file, "a") as f:
+                                    f.write(f"{chat_id}\n")
+                                print(f"✅ [新訂閱者] {username} ({chat_id})")
+                                self.send_direct_message(chat_id, f"你好 {username}！已成功訂閱。")
+                            else:
+                                self.send_direct_message(chat_id, "你已經在名單中囉！")
+            except Exception as e:
+                print(f"訊息監聽錯誤: {e}")
+            time.sleep(1)
+
+    def job_crawler_loop(self):
+        """專門負責爬 104 的無窮迴圈 (背景執行)"""
+        print("🕵️ 職缺爬蟲執行緒已啟動...")
+        while True:
+            # 你關注的關鍵字，例如：DFT, 工程師
+            new_posts = self.search_today_jobs("工程師") 
+            if new_posts:
+                for post in new_posts:
+                    self.broadcast_message(post)
+                    time.sleep(1)
+            
+            print(f"😴 爬蟲完成，休息 15 分鐘... ({datetime.now().strftime('%H:%M:%S')})")
+            time.sleep(900) # 15 分鐘檢查一次
+
+    def send_direct_message(self, chat_id, text):
+        url = f"https://api.telegram.org/bot{self.tg_token}/sendMessage"
+        payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        requests.post(url, data=payload)
+
+    def broadcast_message(self, message):
+        if not os.path.exists(self.db_file): return
+        with open(self.db_file, "r") as f:
+            subscribers = [line.strip() for line in f]
+        for chat_id in subscribers:
+            self.send_direct_message(chat_id, message)
+
+    def search_today_jobs(self, keyword):
+        # ... (維持原本的 104 搜尋邏輯) ...
+        current_date = datetime.now().strftime('%Y%m%d')
+        # 這裡會花比較多時間，但現在是在獨立執行緒執行，不影響回覆
+        # ... 略 ...
+        return [] 
+
+# --- 啟動區 ---
+if __name__ == "__main__":
+    TOKEN = "你的_BOT_TOKEN"
+    bot = Job104TelegramBot(TOKEN)
+    
+    # 建立兩個執行緒
+    t1 = threading.Thread(target=bot.handle_updates) # 負責回訊息
+    t2 = threading.Thread(target=bot.job_crawler_loop) # 負責爬蟲
+    
+    # 啟動
+    t1.start()
+    t2.start()
+
+
+
+
+
+
+
+
+
+
+
+
