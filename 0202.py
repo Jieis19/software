@@ -62,3 +62,9 @@ finally:
         print(f"任務結束。總共抓取: {len(rows)} 筆。檔案已儲存為 Employee_Data_Final.xlsx")
     else:
         print("沒有抓取到任何資料。")
+
+
+
+
+
+處理第 100 筆時發生錯誤: 'NoneType' object has no attribute 'total_seconds'
